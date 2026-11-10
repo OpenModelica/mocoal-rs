@@ -1,0 +1,113 @@
+# Runs the checks and builds mocoal in two forms: the standalone program and the shared library.
+# Both are tested and uploaded as artifacts. A push or a pull request builds for Linux x86_64; a
+# run by hand (Actions > Build > Run workflow) also builds for macOS (Apple silicon) and Windows
+# x86_64.
+name: Build
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  # The macOS binaries run on macOS 12 and later (by default: the version of the runner).
+  MACOSX_DEPLOYMENT_TARGET: "12.0"
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # Ubuntu 22.04: the binaries need glibc 2.35 or later.
+        include: ${{ fromJSON(github.event_name == 'workflow_dispatch'
+          && '[{"name":"linux-x86_64","os":"ubuntu-22.04"},{"name":"macos-aarch64","os":"macos-14"},{"name":"windows-x86_64","os":"windows-2022"}]'
+          || '[{"name":"linux-x86_64","os":"ubuntu-22.04"}]') }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        run: |
+          rustup toolchain install stable --profile minimal --component clippy,rustfmt
+          rustup default stable
+          rustc --version
+
+      # The parser crates of OpenModelica, at the commit in omc/COMMIT.
+      - uses: actions/cache@v4
+        id: omc
+        with:
+          path: omc/OMCompiler
+          key: omc-${{ hashFiles('omc/COMMIT', 'scripts/fetch-omc.sh') }}
+          enableCrossOsArchive: true
+
+      - name: Fetch the parser crates
+        if: steps.omc.outputs.cache-hit != 'true'
+        run: scripts/fetch-omc.sh
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-${{ matrix.name }}-${{ hashFiles('Cargo.lock', 'omc/COMMIT') }}
+
+      - name: Format
+        run: cargo fmt -p mocoal -- --check
+
+      - name: Lint
+        run: cargo clippy --locked -p mocoal --all-targets --no-deps -- -D warnings
+
+      - name: Test
+        run: cargo test --locked
+
+      - name: Build the program and the library
+        run: cargo build --locked --release
+
+      - name: Test the program and the library
+        run: |
+          scripts/check.sh exe
+          scripts/check.sh lib
+
+      - name: Package
+        run: |
+          mkdir -p dist build/mocoal/bin build/libmocoal/lib
+          if [ "$RUNNER_OS" = Windows ]; then
+            cp target/release/mocoal.exe build/mocoal/bin/
+            cp target/release/mocoal.dll build/libmocoal/lib/libmocoal.dll
+            cp target/release/mocoal.dll.lib build/libmocoal/lib/libmocoal.lib
+          else
+            cp target/release/mocoal build/mocoal/bin/
+            cp target/release/libmocoal.so target/release/libmocoal.dylib build/libmocoal/lib/ 2> /dev/null || true
+            ls build/libmocoal/lib/libmocoal.*
+          fi
+          for b in mocoal libmocoal; do
+            cp README.md LICENSE.md COPYING OSMC-License.txt "build/$b/"
+            if [ "$RUNNER_OS" = Windows ]; then
+              (cd build && 7z a -tzip -bso0 "../dist/$b-${{ matrix.name }}.zip" "$b")
+            else
+              tar -czf "dist/$b-${{ matrix.name }}.tar.gz" -C build "$b"
+            fi
+          done
+          ls -la dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mocoal-${{ matrix.name }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14

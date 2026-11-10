@@ -1,0 +1,9 @@
+/target/
+/build/
+/dist/
+# The parser crates of OpenModelica: scripts/fetch-omc.sh
+/omc/OMCompiler/
+*.svg
+.claude/
+CLAUDE.md
+.DS_Store

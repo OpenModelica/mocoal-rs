@@ -1,7 +1,9 @@
 # mocoal-rs
 
 Mocoal (Modelica Component Auto Layout) gives the components of a Modelica model a `Placement` and its connections a `Line`. For models
-written as text, without graphical annotations.
+written as text, without graphical annotations: OMEdit shows such a model as an empty diagram, even
+when it has many components and connections. After mocoal it shows every component and every
+connection.
 
 Two forms, one crate:
 
@@ -42,8 +44,23 @@ end Chain;
 The lines start and end at the connectors of `Gain` (its `u` at x = -120, its `y` at x = 110 in
 the icon). The whole file is in [test/models/Chain.mo](test/models/Chain.mo).
 
-More in [examples/](examples/README.md): a model written as text (Drive), and six examples of the
-Modelica Standard Library, before and after, in OMEdit.
+Neither the components nor the classes need graphical annotations. The input has no `Placement`
+and no `Line`, and `Gain` has no `Icon`: a class without an icon gets the default size, 20 x 20,
+and OMEdit draws it as a box with its name. The result in OMEdit 1.27.1:
+
+![Chain in OMEdit after mocoal](examples/omedit/Chain-layout.png)
+
+[examples/Drive.mo](examples/Drive.mo) is a speed control of an inertia with 8 components of the
+Modelica Standard Library, written as text: no annotation at all. `mocoal -L
+~/.openmodelica/libraries Drive.mo` places the 8 components and routes the 8 connections
+([examples/Drive-layout.mo](examples/Drive-layout.mo)): the signal flow from left to right, the
+speed sensor's feedback below. In OMEdit 1.27.1:
+
+![Drive in OMEdit after mocoal](examples/omedit/Drive-layout.png)
+
+Both pass OMEdit's check (Chain 6 equations, Drive 32). More in [examples/](examples/README.md):
+Drive before and after, and six examples of the Modelica Standard Library, before and after, in
+OMEdit.
 
 ## Build
 

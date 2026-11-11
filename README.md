@@ -152,7 +152,9 @@ Rules:
   icon's border (inputs left, outputs right).
 - Components whose connectors are all acausal (two-pin electrical, mechanical and thermal parts)
   are turned by 0, 90, 180 or 270 degrees so that their connectors face their neighbours: the
-  layout runs, the parts are turned, the layout runs again (up to 3 times). `--no-rotate` leaves
+  layout runs, the parts are turned, the layout runs again (up to 3 times). A part with one
+  connected connector (a boundary, a sink) is turned when that connector is on the left or right of
+  its icon; one with its connector on top (a ground, a fixed flange) is not. `--no-rotate` leaves
   them unturned.
 - The shapes of the Diagram layer (`Diagram(graphics={...})`) belong to the old layout:
   a rectangle that held components becomes the frame of those components, a text inside it or up

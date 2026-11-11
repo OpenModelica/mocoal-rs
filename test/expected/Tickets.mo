@@ -46,13 +46,13 @@ package Tickets "Cases from the OpenModelica issues on auto layout, #7232 and #1
     Pipe main(redeclare package Medium = Media.Water, k = 2) annotation(Placement(transformation(origin={-20,-20}, extent={{-10,-10},{10,10}})));
     Pipe branch1(redeclare package Medium = Media.Water) annotation(Placement(transformation(origin={30,20}, extent={{-10,-10},{10,10}})));
     Pipe branch2(redeclare package Medium = Media.Water, k = 3) annotation(Placement(transformation(origin={30,-20}, extent={{-10,-10},{10,10}})));
-    Boundary drain(redeclare package Medium = Media.Water) annotation(Placement(transformation(origin={80,20}, extent={{-10,-10},{10,10}})));
+    Boundary drain(redeclare package Medium = Media.Water) annotation(Placement(transformation(origin={80,20}, extent={{-10,-10},{10,10}}, rotation=180)));
   equation
     connect(supply.port, main.port_a) annotation(Line(points={{-60,-20},{-30,-20}}, color={0,127,255}));
     connect(main.port_b, branch1.port_a) annotation(Line(points={{-10,-20},{15,-20},{15,20},{20,20}}, color={0,127,255}));
     connect(main.port_b, branch2.port_a) annotation(Line(points={{-10,-20},{20,-20}}, color={0,127,255}));
-    connect(branch1.port_b, drain.port) annotation(Line(points={{40,20},{65,20},{65,35},{95,35},{95,20},{90,20}}, color={0,127,255}));
-    connect(branch2.port_b, drain.port) annotation(Line(points={{40,-20},{95,-20},{95,20},{90,20}}, color={0,127,255}));
+    connect(branch1.port_b, drain.port) annotation(Line(points={{40,20},{70,20}}, color={0,127,255}));
+    connect(branch2.port_b, drain.port) annotation(Line(points={{40,-20},{45,-20},{45,20},{70,20}}, color={0,127,255}));
     annotation(Diagram(coordinateSystem(extent={{-100,-100},{120,100}})));
   end Network;
 

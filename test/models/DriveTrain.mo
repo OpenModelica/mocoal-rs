@@ -1,0 +1,33 @@
+model DriveTrain "Speed control of three inertias coupled by springs, with dampers to a fixed housing"
+  Parts.Sine reference(f = 0.5);
+  Parts.Feedback error;
+  Parts.Gain controller(k = 20);
+  Parts.Torque motor;
+  Parts.Inertia rotor(J = 0.1);
+  Parts.Spring shaft1(c = 1000);
+  Parts.Inertia gear(J = 0.5);
+  Parts.Spring shaft2(c = 500);
+  Parts.Inertia load(J = 2);
+  Parts.Damper bearing1(d = 0.1);
+  Parts.Damper bearing2(d = 0.2);
+  Parts.Damper friction(d = 1);
+  Parts.Fixed housing;
+  Parts.SpeedSensor speed;
+equation
+  connect(reference.y, error.u1);
+  connect(error.y, controller.u);
+  connect(controller.y, motor.tau);
+  connect(motor.flange, rotor.flange_a);
+  connect(rotor.flange_b, shaft1.flange_a);
+  connect(shaft1.flange_b, gear.flange_a);
+  connect(gear.flange_b, shaft2.flange_a);
+  connect(shaft2.flange_b, load.flange_a);
+  connect(rotor.flange_b, bearing1.flange_a);
+  connect(gear.flange_b, bearing2.flange_a);
+  connect(load.flange_b, friction.flange_a);
+  connect(bearing1.flange_b, housing.flange);
+  connect(bearing2.flange_b, housing.flange);
+  connect(friction.flange_b, housing.flange);
+  connect(load.flange_b, speed.flange);
+  connect(speed.w, error.u2);
+end DriveTrain;

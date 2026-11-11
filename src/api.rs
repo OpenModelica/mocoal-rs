@@ -10,6 +10,7 @@
 
 use std::rc::Rc;
 
+use crate::layout::diagram::Diagram;
 use crate::layout::extract::{class_selected, diagram_classes, extract_diagram};
 use crate::layout::placement::place_diagram;
 use crate::layout::routing::route_diagram;
@@ -69,6 +70,17 @@ pub(crate) fn layout_string_in(
     opts: &Options,
     lib: &mut Library,
 ) -> Result<LayoutResult, String> {
+    layout_diagrams(text, file_name, opts, lib, None)
+}
+
+/// `layout_string_in` that also hands over the laid-out diagram of each class, for the tests.
+pub(crate) fn layout_diagrams(
+    text: &str,
+    file_name: &str,
+    opts: &Options,
+    lib: &mut Library,
+    mut diagrams: Option<&mut Vec<Diagram>>,
+) -> Result<LayoutResult, String> {
     opts.check()?;
     let prog = parse_text(text, file_name)?;
     let src = Rc::new(Source::new(text, file_name)?);
@@ -112,6 +124,9 @@ pub(crate) fn layout_string_in(
             });
             if opts.svg {
                 res.svgs.push((name, svg_diagram(&d)));
+            }
+            if let Some(v) = diagrams.as_deref_mut() {
+                v.push(d);
             }
         }
     }

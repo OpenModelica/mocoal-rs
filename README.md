@@ -200,7 +200,22 @@ cargo fmt -p mocoal -- --check
 cargo clippy -p mocoal --all-targets --no-deps -- -D warnings
 ```
 
-55 tests. `check.sh [exe|lib|all]` runs the program on
+57 tests, 0.3 s. Among them `layouts` in [src/tests.rs](src/tests.rs): 12 cases on the 7 models
+in [test/models](test/models) (8 to 26 components, 16 to 35 connections; a cascade control, an RC
+ladder, a resistor mesh, a drive train, a chain of 24 gains, and the rules of the layout), which
+use the parts in [test/library/Parts.mo](test/library/Parts.mo), not the MSL. Each result must equal
+its file in [test/expected](test/expected) byte for byte: the `Placement` and `Line` coordinates.
+On the laid-out diagram of each class it checks that no two components overlap, every line ends at
+its ports, orthogonal lines are axis-aligned and pass through no component, and a second layout
+changes nothing. After an intended change of the layout:
+
+```bash
+MOCOAL_BLESS=1 cargo test -p mocoal layouts
+```
+
+then review `git diff test/expected`.
+
+`check.sh [exe|lib|all]` runs the program on
 [test/models/Chain.mo](test/models/Chain.mo) and compiles and runs `interface/test_lib.c`
 against the library. `cargo fmt` and `cargo clippy` need `-p mocoal` (and clippy `--no-deps`):
 without it they work on the fetched crates too.

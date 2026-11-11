@@ -254,29 +254,27 @@ arm64 and Windows x86_64 on a run by hand (Actions > Build > Run workflow) and f
 
 ## Release
 
-```bash
-git tag v0.1.0
-```
+Only by hand: Actions > Release > Run workflow
+([.github/workflows/release.yml](.github/workflows/release.yml)), with
 
-```bash
-git push origin v0.1.0
-```
+- `commit`: the commit to release, on master. Empty: the head of master.
+- `publish`: make the tag and the release. Off (the default): a dry run, everything but those two.
 
-The tag is `v` and the version in `Cargo.toml`. The workflow
-[.github/workflows/release.yml](.github/workflows/release.yml) checks that, and makes a GitHub
-release with:
+The version comes from `Cargo.toml` of that commit. The workflow builds and tests that commit,
+makes the tag `v<version>` on it and a GitHub release with:
 
 - `mocoal-<platform>` and `libmocoal-<platform>` for Linux x86_64, macOS arm64 and Windows
   x86_64 (`.tar.gz`, `.zip` on Windows): the program or the library with `README.md` and the
   licence files, built and tested as by the Build workflow;
-- `mocoal-rs-<version>-src.tar.gz`: the complete source. The tagged tree, the parser crates of
-  OpenModelica and the crates.io dependencies (`cargo vendor`): `cargo build --release --offline`
+- `mocoal-rs-<version>-src.tar.gz`: the complete source. The tree of the commit, the parser crates
+  of OpenModelica and the crates.io dependencies (`cargo vendor`): `cargo build --release --offline`
   builds it without network access (8 MB). GitHub's own "Source code" archives lack the parser
   crates;
 - `SHA256SUMS` of all of them.
 
-A pull request that changes `release.yml`, or a run by hand (Actions > Release > Run workflow),
-does all of this but the release.
+A version whose tag exists is refused: change the version in `Cargo.toml` first. A pushed tag
+starts no release. A pull request that changes `release.yml` is a dry run. Nothing is published
+to crates.io (`publish = false`).
 
 ## Limitations
 

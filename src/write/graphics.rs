@@ -387,7 +387,7 @@ pub fn annotate_graphics(edits: &mut Vec<Edit>, src: &Source, d: &mut Diagram, o
         edits.push(Edit {
             start: src.start(lbrace),
             stop: src.stop(rbrace),
-            text: format!("{{{}}}", out.join(",\n    ")),
+            text: format!("{{{}}}", out.join(&format!(",{}    ", src.newline()))),
         });
     }
 }

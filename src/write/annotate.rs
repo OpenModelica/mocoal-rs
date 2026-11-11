@@ -275,7 +275,7 @@ pub fn annotate_extent(edits: &mut Vec<Edit>, src: &Source, d: &mut Diagram, war
         let text = format!("annotation(Diagram(coordinateSystem({leaf})));");
         if line_first == 0 || bytes[line_first - 1] == b'\n' {
             let indent = &src.text[line_first..at];
-            edits.push(insertion(at, format!("  {text}\n{indent}")));
+            edits.push(insertion(at, format!("  {text}{}{indent}", src.newline())));
         } else {
             edits.push(insertion(at, format!("{text} ")));
         }

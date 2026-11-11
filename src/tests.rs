@@ -18,9 +18,10 @@
 //! Each case also checks the laid-out diagram of every class: no two components overlap, every
 //! line starts and ends at its ports, orthogonal lines are axis-aligned and pass through no
 //! component, and a second layout of the result changes nothing. With `keep`, every `Placement`
-//! of the input is in the result as it was.
+//! of the input is in the result as it was. The same model with CRLF line endings gives the same
+//! result with CRLF line endings.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::api::{LayoutResult, layout_diagrams};
 use crate::layout::diagram::{Diagram, Node, Point};
@@ -118,6 +119,11 @@ const CASES: &[Case] = &[
 /// Components that keep a place given elsewhere, so the class does not place them: (class, how many).
 const NOT_PLACED: &[(&str, usize)] = &[("Features.Derived", 1)];
 
+/// The text of a file with LF line endings.
+fn read_lf(path: &Path) -> Option<String> {
+    std::fs::read_to_string(path).ok().map(|t| t.replace("\r\n", "\n"))
+}
+
 fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("test")
 }
@@ -146,12 +152,13 @@ fn layouts() {
     let mut failed = Vec::new();
     for case in CASES {
         let opts = options(case);
-        let source = std::fs::read_to_string(root().join("models").join(case.model)).unwrap();
+        // LF, however git checked the files out.
+        let source = read_lf(&root().join("models").join(case.model)).unwrap();
         let (result, diagrams) = layout(case, &source, &opts);
         let path = root().join("expected").join(case.expected);
         if bless {
             std::fs::write(&path, &result.text).unwrap();
-        } else if std::fs::read_to_string(&path).ok().as_deref() != Some(result.text.as_str()) {
+        } else if read_lf(&path).as_deref() != Some(result.text.as_str()) {
             failed.push(format!("{}: differs from {}", case.expected, path.display()));
         }
         let checks = check_report(&result, &opts).and_then(|()| {
@@ -168,6 +175,13 @@ fn layouts() {
                 .find(|l| l.contains("Placement(") && !result.text.contains(l))
         {
             failed.push(format!("{}: --keep changes `{}`", case.expected, line.trim()));
+        }
+        let (crlf, _) = layout(case, &source.replace('\n', "\r\n"), &opts);
+        if crlf.text != result.text.replace('\n', "\r\n") {
+            failed.push(format!(
+                "{}: a CRLF input gives other lines or line endings",
+                case.expected
+            ));
         }
         let (again, _) = layout(case, &result.text, &opts);
         if again.changed {

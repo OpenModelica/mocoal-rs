@@ -9,24 +9,26 @@
 // The Absyn of OpenModelica keeps its MetaModelica names.
 #![allow(non_snake_case)]
 
-pub mod absyn;
-pub mod annotate;
+// The public parts: the Rust API, its options, the program and the C interface.
+
+mod absyn;
+mod annotate;
 pub mod api;
 pub mod capi;
-pub mod cli;
-pub mod diagram;
-pub mod ends;
-pub mod extract;
-pub mod graphics;
-pub mod grid;
-pub mod layered;
-pub mod lookup;
-pub mod numbers;
+mod cli;
+mod diagram;
+mod ends;
+mod extract;
+mod graphics;
+mod grid;
+mod layered;
+mod lookup;
+mod numbers;
 pub mod options;
-pub mod placement;
+mod placement;
 pub mod program;
-pub mod resolve;
-pub mod routing;
-pub mod spring;
-pub mod svg;
-pub mod tokens;
+mod resolve;
+mod routing;
+mod spring;
+mod svg;
+mod tokens;

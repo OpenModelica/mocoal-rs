@@ -20,23 +20,23 @@ fn say(s: &str) {
     eprintln!("{s}");
 }
 
-/// The texts that `-i` writes when all files are done, so that every file is read as it was.
-#[derive(Default)]
-struct Pending {
-    names: Vec<String>,
-    texts: Vec<String>,
-}
+/// The files and texts that `-i` writes when all files are done, so that every file is read as it
+/// was.
+type Pending = Vec<(String, String)>;
 
 /// Lay out one file as the command line asks: (done, changed).
 fn run_file(cl: &CommandLine, lib: &mut Library, file: &str, several: bool, pending: &mut Pending) -> (bool, bool) {
-    let Ok(res) = catch_unwind(AssertUnwindSafe(|| layout_file_in(file, &cl.opts, lib))) else {
-        say(&format!("mocoal: {file}: internal error, no layout"));
-        return (false, false);
+    let res = match catch_unwind(AssertUnwindSafe(|| layout_file_in(file, &cl.opts, lib))) {
+        Ok(Ok(res)) => res,
+        Ok(Err(msg)) => {
+            say(&format!("mocoal: {msg}"));
+            return (false, false);
+        }
+        Err(_) => {
+            say(&format!("mocoal: {file}: internal error, no layout"));
+            return (false, false);
+        }
     };
-    if !res.error.is_empty() {
-        say(&format!("mocoal: {}", res.error));
-        return (false, false);
-    }
     if !cl.quiet {
         for w in &res.warnings {
             say(&format!("mocoal: warning: {w}"));
@@ -60,9 +60,9 @@ fn run_file(cl: &CommandLine, lib: &mut Library, file: &str, several: bool, pend
             ));
         }
     }
-    for (name, svg) in res.svg_names.iter().zip(&res.svgs) {
+    for (name, svg) in &res.svgs {
         let path = join_path(&cl.svg_dir, &svg_file_name(name));
-        if !write_text(&path, svg) {
+        if write_text(&path, svg).is_err() {
             say(&format!("mocoal: cannot write {path}"));
             return (false, res.changed);
         }
@@ -72,11 +72,10 @@ fn run_file(cl: &CommandLine, lib: &mut Library, file: &str, several: bool, pend
     }
     if cl.in_place {
         if res.changed {
-            pending.names.push(file.to_owned());
-            pending.texts.push(res.text);
+            pending.push((file.to_owned(), res.text));
         }
     } else if !cl.output.is_empty() {
-        if !write_text(&cl.output, &res.text) {
+        if write_text(&cl.output, &res.text).is_err() {
             say(&format!("mocoal: cannot write {}", cl.output));
             return (false, res.changed);
         }
@@ -89,12 +88,14 @@ fn run_file(cl: &CommandLine, lib: &mut Library, file: &str, several: bool, pend
 /// Run `mocoal` with the command line `args` (without the program name); the exit status.
 /// See `mocoal --help`.
 pub fn run(args: &[String]) -> u8 {
-    let cl = parse_arguments(args);
-    if !cl.error.is_empty() {
-        say(&format!("mocoal: {}", cl.error));
-        say("try: mocoal --help");
-        return 2;
-    }
+    let cl = match parse_arguments(args) {
+        Ok(cl) => cl,
+        Err(msg) => {
+            say(&format!("mocoal: {msg}"));
+            say("try: mocoal --help");
+            return 2;
+        }
+    };
     if cl.help {
         print!("{USAGE_TEXT}");
         return 0;
@@ -138,14 +139,14 @@ pub fn run(args: &[String]) -> u8 {
     }
     let mut failed = 0;
     let mut changed = 0;
-    let mut pending = Pending::default();
+    let mut pending = Pending::new();
     for file in &files {
         let (ok, ch) = run_file(&cl, &mut lib, file, several, &mut pending);
         failed += usize::from(!ok);
         changed += usize::from(ch);
     }
-    for (name, text) in pending.names.iter().zip(&pending.texts) {
-        if !write_text(name, text) {
+    for (name, text) in &pending {
+        if write_text(name, text).is_err() {
             say(&format!("mocoal: cannot write {name}"));
             failed += 1;
             changed -= 1;

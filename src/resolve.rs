@@ -18,6 +18,7 @@ use crate::absyn::{
     icon_line_color, modifier_args, modifier_bool, modifier_numbers, path_parts, read_transformation, rotate_point,
     type_path,
 };
+use crate::diagram::{ACAUSAL, INPUT, OUTPUT};
 use crate::lookup::{
     ClassId, DEFAULT_ICON_SYSTEM, IconPlaces, IconSystem, Library, PortInfo, abs_path, dir_name, is_dir, is_file,
 };
@@ -28,10 +29,20 @@ pub fn is_builtin_type(name: &str) -> bool {
     matches!(name, "Real" | "Integer" | "Boolean" | "String" | "Clock")
 }
 
+/// Whether the type path `parts` names a builtin type (or nothing).
+pub fn is_builtin_path(parts: &[String]) -> bool {
+    match parts {
+        [] => true,
+        [name] => is_builtin_type(name),
+        _ => false,
+    }
+}
+
 /// The class at the fully qualified name `parts`.
 pub fn lookup_absolute(lib: &mut Library, parts: &[String]) -> Option<ClassId> {
-    let mut cur = lib.top_level(parts.first()?)?;
-    for p in &parts[1..] {
+    let (first, rest) = parts.split_first()?;
+    let mut cur = lib.top_level(first)?;
+    for p in rest {
         cur = lookup_member(lib, cur, p, 1)?;
     }
     Some(cur)
@@ -208,52 +219,88 @@ pub fn lookup_path(
     cur
 }
 
-/// 1 model, 2 block, 3 class, 4 connector, 5 expandable connector, 6 record, 7 type, 8 package,
-/// 9 function, 10 other, 11 enumeration.
-pub fn restriction_kind(c: &Absyn::Class) -> i32 {
-    use Absyn::Restriction as R;
-    if matches!(&*c.body, Absyn::ENUMERATION { .. }) {
-        return 11;
+/// The restriction of a class, as far as the layout cares.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ClassKind {
+    Model,
+    Block,
+    Class,
+    Connector,
+    ExpandableConnector,
+    Record,
+    Type,
+    Package,
+    Function,
+    Enumeration,
+    Other,
+}
+
+impl ClassKind {
+    /// A connector or an expandable connector.
+    pub fn is_connector(self) -> bool {
+        matches!(self, ClassKind::Connector | ClassKind::ExpandableConnector)
     }
-    match &c.restriction {
-        R::R_MODEL => 1,
-        R::R_BLOCK => 2,
-        R::R_CLASS => 3,
-        R::R_CONNECTOR => 4,
-        R::R_EXP_CONNECTOR => 5,
-        R::R_RECORD | R::R_OPERATOR_RECORD => 6,
-        R::R_TYPE => 7,
-        R::R_PACKAGE => 8,
-        R::R_FUNCTION { .. } => 9,
-        R::R_ENUMERATION => 11,
-        _ => 10,
+
+    /// A model, block or class: a class whose diagram is laid out.
+    pub fn has_diagram(self) -> bool {
+        matches!(self, ClassKind::Model | ClassKind::Block | ClassKind::Class)
+    }
+
+    /// A type, package, function, enumeration or other class: its components are not in a diagram.
+    pub fn is_not_drawn(self) -> bool {
+        matches!(
+            self,
+            ClassKind::Type | ClassKind::Package | ClassKind::Function | ClassKind::Enumeration | ClassKind::Other
+        )
     }
 }
 
-/// 1 input, 2 output, 0 none.
+/// The kind of a class by its restriction.
+pub fn restriction_kind(c: &Absyn::Class) -> ClassKind {
+    use Absyn::Restriction as R;
+    if matches!(&*c.body, Absyn::ENUMERATION { .. }) {
+        return ClassKind::Enumeration;
+    }
+    match &c.restriction {
+        R::R_MODEL => ClassKind::Model,
+        R::R_BLOCK => ClassKind::Block,
+        R::R_CLASS => ClassKind::Class,
+        R::R_CONNECTOR => ClassKind::Connector,
+        R::R_EXP_CONNECTOR => ClassKind::ExpandableConnector,
+        R::R_RECORD | R::R_OPERATOR_RECORD => ClassKind::Record,
+        R::R_TYPE => ClassKind::Type,
+        R::R_PACKAGE => ClassKind::Package,
+        R::R_FUNCTION { .. } => ClassKind::Function,
+        R::R_ENUMERATION => ClassKind::Enumeration,
+        _ => ClassKind::Other,
+    }
+}
+
+/// The causality given by a direction prefix: `INPUT`, `OUTPUT` or `ACAUSAL`.
 pub fn direction_code(a: &Absyn::ElementAttributes) -> i32 {
     match a.direction {
-        Absyn::Direction::INPUT => 1,
-        Absyn::Direction::OUTPUT => 2,
-        _ => 0,
+        Absyn::Direction::INPUT => INPUT,
+        Absyn::Direction::OUTPUT => OUTPUT,
+        _ => ACAUSAL,
     }
 }
 
 /// The kind of a class and the direction prefix it carries, read along its short class definitions.
-pub fn class_kind(lib: &mut Library, c: ClassId) -> (i32, i32) {
+/// A `class` that is short for another class has that one's kind.
+pub fn class_kind(lib: &mut Library, c: ClassId) -> (ClassKind, i32) {
     let mut cur = c;
-    let mut kind = 0;
-    let mut direction = 0;
+    let mut kind = None;
+    let mut direction = ACAUSAL;
     for _ in 0..MAX_LOOKUP_DEPTH {
         let class = lib.classes[cur].class.clone();
         let k = restriction_kind(&class);
-        if kind == 0 && k != 3 {
-            kind = k;
+        if kind.is_none() && k != ClassKind::Class {
+            kind = Some(k);
         }
         let Absyn::DERIVED { attributes, .. } = &*class.body else {
             break;
         };
-        if direction == 0 {
+        if direction == ACAUSAL {
             direction = direction_code(attributes);
         }
         let bases = base_classes(lib, cur, 1);
@@ -262,14 +309,30 @@ pub fn class_kind(lib: &mut Library, c: ClassId) -> (i32, i32) {
         };
         cur = *b;
     }
-    (if kind == 0 { 3 } else { kind }, direction)
+    (kind.unwrap_or(ClassKind::Class), direction)
+}
+
+/// The kind of the class `tref` (none when it is unknown) and the causality of a component of it:
+/// the component's own direction `direction`, else the one its class carries.
+pub fn kind_and_causality(lib: &mut Library, tref: Option<ClassId>, direction: i32) -> (Option<ClassKind>, i32) {
+    let Some(c) = tref else {
+        return (None, direction);
+    };
+    let (kind, class_direction) = class_kind(lib, c);
+    (
+        Some(kind),
+        if direction == ACAUSAL {
+            class_direction
+        } else {
+            direction
+        },
+    )
 }
 
 /// A component declaration found in `owner`.
 #[derive(Clone)]
 pub struct CompDecl {
     pub owner: ClassId,
-    pub element: Ref<Absyn::Element>,
     /// A `COMPONENTS` specification.
     pub spec: Ref<Absyn::ElementSpec>,
     pub item: Ref<Absyn::ComponentItem>,
@@ -310,7 +373,6 @@ pub fn find_component(lib: &mut Library, c: ClassId, name: &str, depth: usize) -
             if item.component.name == name {
                 return Some(CompDecl {
                     owner: c,
-                    element: e.clone(),
                     spec: specification.clone(),
                     item: item.clone(),
                 });
@@ -369,16 +431,14 @@ pub fn class_color(lib: &mut Library, c: ClassId, depth: usize) -> String {
 
 /// The direction and line colour of a component declaration's connector class.
 pub fn connector_traits(lib: &mut Library, d: &CompDecl) -> (i32, String) {
-    let mut causality = d.attributes().map_or(0, direction_code);
+    let mut causality = d.attributes().map_or(ACAUSAL, direction_code);
     let mut color = String::new();
     if let Some(tp) = d.type_path() {
         let parts = path_parts(tp);
-        if !(parts.len() == 1 && is_builtin_type(&parts[0]))
+        if !is_builtin_path(&parts)
             && let Some(tref) = lookup_path(lib, d.owner, tp, false, 0)
         {
-            if causality == 0 {
-                causality = class_kind(lib, tref).1;
-            }
+            (_, causality) = kind_and_causality(lib, Some(tref), causality);
             color = class_color(lib, tref, 0);
         }
     }
@@ -420,25 +480,19 @@ pub fn icon_places(lib: &mut Library, c: ClassId) -> Rc<IconPlaces> {
         };
         let tp = type_path(type_spec);
         let parts = path_parts(tp);
-        if parts.is_empty() || (parts.len() == 1 && is_builtin_type(&parts[0])) {
+        if is_builtin_path(&parts) {
             continue;
         }
         let Some(tref) = lookup_path(lib, c, tp, false, 0) else {
             continue;
         };
-        let (kind, cd) = class_kind(lib, tref);
-        if !(kind == 4 || kind == 5) {
+        let (kind, direction) = kind_and_causality(lib, Some(tref), direction_code(attributes));
+        if !kind.is_some_and(ClassKind::is_connector) {
             continue;
         }
-        let mut direction = direction_code(attributes);
-        if direction == 0 {
-            direction = cd;
-        }
-        let icon = icon_system(lib, tref);
-        let w = ((icon.x2 - icon.x1).abs() * icon.initial_scale).max(2.0);
-        let h = ((icon.y2 - icon.y1).abs() * icon.initial_scale).max(2.0);
+        let (w, h) = icon_system(lib, tref).default_size(1.0);
         for item in components {
-            let (_, t, it) = read_placement(&comment_args(&item.comment));
+            let (_, t, it) = read_placement(&comment_args(item.comment.as_ref()));
             if t.has || it.has {
                 continue;
             }
@@ -455,9 +509,9 @@ pub fn icon_places(lib: &mut Library, c: ClassId) -> Rc<IconPlaces> {
     let mut right: Vec<usize> = Vec::new();
     let mut other: Vec<usize> = Vec::new();
     for (i, cz) in causality.iter().enumerate() {
-        match cz {
-            1 => left.push(i),
-            2 => right.push(i),
+        match *cz {
+            INPUT => left.push(i),
+            OUTPUT => right.push(i),
             _ => other.push(i),
         }
     }
@@ -470,15 +524,15 @@ pub fn icon_places(lib: &mut Library, c: ClassId) -> Rc<IconPlaces> {
         }
     }
     let mut out = IconPlaces::new();
-    for (side, ids) in [(1, &left), (2, &right)] {
+    for (side, ids) in [(INPUT, &left), (OUTPUT, &right)] {
         let m = ids.len();
         for (k0, &i) in ids.iter().enumerate() {
             let k = (k0 + 1) as f64;
-            let mut x = if side == 1 { -100.0 } else { 100.0 };
-            if causality[i] == 1 {
+            let mut x = if side == INPUT { -100.0 } else { 100.0 };
+            if causality[i] == INPUT {
                 x = -100.0 - sizes[i].0 / 2.0;
             }
-            if causality[i] == 2 {
+            if causality[i] == OUTPUT {
                 x = 100.0 + sizes[i].0 / 2.0;
             }
             let y = ((100.0 - 200.0 * k / (m + 1) as f64) / 10.0).round_ties_even() * 10.0;
@@ -505,7 +559,7 @@ pub fn port_info(lib: &mut Library, c: ClassId, name: &str) -> PortInfo {
         color: String::new(),
     };
     if let Some(d) = find_component(lib, c, name, 0) {
-        let (_, t, it) = read_placement(&comment_args(&d.item.comment));
+        let (_, t, it) = read_placement(&comment_args(d.item.comment.as_ref()));
         let used = if it.has { it } else { t };
         let mut pos = if used.has {
             transformation_centre(&used)
@@ -671,9 +725,12 @@ end P;";
         let gain = lookup_absolute(&mut lib, &["P".to_owned(), "Gain".to_owned()]);
         assert!(gain.is_some());
         let Some(gain) = gain else { return };
-        assert_eq!(class_kind(&mut lib, gain), (2, 0));
+        assert_eq!(class_kind(&mut lib, gain), (ClassKind::Block, ACAUSAL));
         let input = lib.local_class(p, "In");
-        assert_eq!(input.map(|c| class_kind(&mut lib, c)), Some((4, 1)));
+        assert_eq!(
+            input.map(|c| class_kind(&mut lib, c)),
+            Some((ClassKind::Connector, INPUT))
+        );
         let u = port_info(&mut lib, gain, "u");
         assert!(u.found && u.known);
         assert_eq!((u.x, u.y, u.causality), (-120.0, 0.0, 1));

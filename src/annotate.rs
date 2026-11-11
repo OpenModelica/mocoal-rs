@@ -184,7 +184,10 @@ pub fn line_text(l: &Link, kept: &[String], has_color: bool) -> String {
 pub fn annotate_links(edits: &mut Vec<Edit>, src: &Source, d: &Diagram) -> usize {
     let mut count = 0;
     for l in &d.links {
-        let (false, Some(_), Some(semi_tok)) = (l.keep, l.eq_tok, l.semi_tok) else {
+        if l.keep || l.eq_tok.is_none() {
+            continue;
+        }
+        let Some(semi_tok) = l.semi_tok else {
             continue;
         };
         let lpar = l.ann_tok.map(|t| t + 1).filter(|t| is_lpar(src, *t));

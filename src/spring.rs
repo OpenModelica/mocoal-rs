@@ -6,7 +6,7 @@
 
 //! Spring placement of one connected group of nodes.
 //!
-//! Adapted from `spring_layout` in GraphPlot.jl (https://github.com/JuliaGraphs/GraphPlot.jl),
+//! Adapted from `spring_layout` in GraphPlot.jl (<https://github.com/JuliaGraphs/GraphPlot.jl>),
 //! MIT "Expat" License, Copyright (c) 2015: afternone. Here a list of neighbours replaces the
 //! sparse adjacency matrix, and a fixed generator replaces the random numbers, so that the same
 //! model always gets the same layout.
@@ -202,20 +202,7 @@ mod tests {
         let mut d = Diagram::new("M");
         d.nodes.push(Node::new("a", "A", 20.0, 20.0));
         d.nodes.push(Node::new("b", "A", 20.0, 20.0));
-        d.links.push(Link {
-            a: 0,
-            pa: None,
-            b: 1,
-            pb: None,
-            points: Vec::new(),
-            eq_tok: None,
-            semi_tok: None,
-            ann_tok: None,
-            has_line: false,
-            color: String::new(),
-            smooth: false,
-            keep: false,
-        });
+        d.links.push(Link::new(0, None, 1, None));
         spring_component(&mut d, &[0, 1], &[0], &Options::default());
         // half = 0.5 * sqrt(2) * 1.2 = 0.848...; the corners are at +-0.848 * 50 and +-0.848 * 40,
         // rounded to the grid of 10.

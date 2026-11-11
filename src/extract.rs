@@ -18,13 +18,14 @@ use crate::absyn::{
     Transformation, class_annotation_args, comment_args, find_modifier, find_modifier_path, info_position,
     modifier_args, modifier_numbers, path_parts, type_path,
 };
-use crate::diagram::{Diagram, Link, Node, Port};
-use crate::lookup::{ClassId, DEFAULT_ICON_SYSTEM, IconSystem, LayoutPlaces, Library, file_path, read_text};
+use crate::diagram::{ACAUSAL, Diagram, Link, Node, Port};
+use crate::lookup::{ClassId, DEFAULT_ICON_SYSTEM, LayoutPlaces, Library, file_path, read_text};
 use crate::options::Options;
 use crate::placement::place_diagram;
 use crate::resolve::{
-    MAX_LOOKUP_DEPTH, class_color, class_kind, direction_code, find_component, icon_places, icon_system,
-    is_builtin_type, lookup_path, port_info, read_placement, restriction_kind, transformation_centre,
+    ClassKind, MAX_LOOKUP_DEPTH, class_color, direction_code, find_component, icon_places, icon_system,
+    is_builtin_path, kind_and_causality, lookup_path, port_info, read_placement, restriction_kind,
+    transformation_centre,
 };
 use crate::tokens::Source;
 
@@ -80,13 +81,7 @@ pub fn class_annotation_lpar(src: &Source, cls: &Absyn::Class) -> Option<usize> 
     None
 }
 
-/// The default size of a component of a class with the icon system `s`.
-pub fn default_size(s: &IconSystem, scale: f64) -> (f64, f64) {
-    let w = (s.x2 - s.x1).abs() * s.initial_scale * scale;
-    let h = (s.y2 - s.y1).abs() * s.initial_scale * scale;
-    (w.max(2.0), h.max(2.0))
-}
-
+/// A parameter or a constant.
 pub fn is_parameter(a: &Absyn::ElementAttributes) -> bool {
     matches!(a.variability, Absyn::Variability::PARAM | Absyn::Variability::CONST)
 }
@@ -120,7 +115,7 @@ impl Extraction<'_> {
         name: &str,
         type_name: &str,
         tref: Option<ClassId>,
-        kind: i32,
+        kind: Option<ClassKind>,
         direction: i32,
         t: &Transformation,
     ) -> Node {
@@ -128,18 +123,18 @@ impl Extraction<'_> {
             Some(c) => icon_system(self.lib, c),
             None => DEFAULT_ICON_SYSTEM,
         };
-        let (mut w, mut h) = default_size(&icon, self.opts.scale);
-        if t.has {
-            w = (t.ex2 - t.ex1).abs().max(2.0);
-            h = (t.ey2 - t.ey1).abs().max(2.0);
-        }
+        let (w, h) = if t.has {
+            ((t.ex2 - t.ex1).abs().max(2.0), (t.ey2 - t.ey1).abs().max(2.0))
+        } else {
+            icon.default_size(self.opts.scale)
+        };
         let mut n = Node::new(name, type_name, w, h);
         n.cx1 = icon.x1;
         n.cy1 = icon.y1;
         n.cx2 = icon.x2;
         n.cy2 = icon.y2;
         n.preserve_aspect_ratio = icon.preserve_aspect_ratio;
-        n.is_connector = kind == 4 || kind == 5;
+        n.is_connector = kind.is_some_and(ClassKind::is_connector);
         n.causality = direction;
         if n.is_connector
             && let Some(c) = tref
@@ -182,22 +177,14 @@ impl Extraction<'_> {
         }
         let tp = type_path(type_spec);
         let parts = path_parts(tp);
-        if parts.is_empty() || (parts.len() == 1 && is_builtin_type(&parts[0])) {
+        if is_builtin_path(&parts) {
             return;
         }
         let type_name = parts.join(".");
         let tref = lookup_path(self.lib, self.class, tp, false, 0);
-        let mut kind = 0;
-        let mut direction = direction_code(attributes);
-        if let Some(c) = tref {
-            let (k, cd) = class_kind(self.lib, c);
-            kind = k;
-            if direction == 0 {
-                direction = cd;
-            }
-            if matches!(kind, 7..=11) {
-                return;
-            }
+        let (kind, direction) = kind_and_causality(self.lib, tref, direction_code(attributes));
+        if kind.is_some_and(ClassKind::is_not_drawn) {
+            return;
         }
         let items: Vec<&Ref<Absyn::ComponentItem>> = components.iter().collect();
         let segs = match start_token(self.src, info) {
@@ -212,12 +199,12 @@ impl Extraction<'_> {
             return;
         }
         let cc_args = match constrain_class {
-            Some(cc) => comment_args(&cc.comment),
+            Some(cc) => comment_args(cc.comment.as_ref()),
             None => Vec::new(),
         };
         for (i, item) in items.iter().enumerate() {
             let seg = segs[i];
-            let (mut has, mut t, mut it) = read_placement(&comment_args(&item.comment));
+            let (mut has, mut t, mut it) = read_placement(&comment_args(item.comment.as_ref()));
             let mut target = seg.ann_tok.or(seg.cc_ann_tok);
             if !has && i + 1 == items.len() && !cc_args.is_empty() {
                 (has, t, it) = read_placement(&cc_args);
@@ -225,7 +212,7 @@ impl Extraction<'_> {
                     target = seg.cc_ann_tok;
                 }
             }
-            if kind == 6 && !(has || is_parameter(attributes)) {
+            if kind == Some(ClassKind::Record) && !(has || is_parameter(attributes)) {
                 continue;
             }
             let name = item.component.name.as_str();
@@ -258,7 +245,7 @@ impl Extraction<'_> {
         if d.owner == self.class {
             return None;
         }
-        let (_, mut t, _) = read_placement(&comment_args(&d.item.comment));
+        let (_, mut t, _) = read_placement(&comment_args(d.item.comment.as_ref()));
         if let Some(places) = layout_of(self.lib, d.owner, self.opts)
             && let Some(b) = places.get(name)
         {
@@ -278,15 +265,8 @@ impl Extraction<'_> {
         }
         let tp = d.type_path()?;
         let tref = lookup_path(self.lib, d.owner, tp, false, 0);
-        let mut kind = 0;
-        let mut direction = d.attributes().map_or(0, direction_code);
-        if let Some(c) = tref {
-            let (k, cd) = class_kind(self.lib, c);
-            kind = k;
-            if direction == 0 {
-                direction = cd;
-            }
-        }
+        let direction = d.attributes().map_or(ACAUSAL, direction_code);
+        let (kind, direction) = kind_and_causality(self.lib, tref, direction);
         let mut n = self.make_node(name, &path_parts(tp).join("."), tref, kind, direction, &t);
         n.set_transformation(&t);
         n.fixed = true;
@@ -340,7 +320,7 @@ impl Extraction<'_> {
 
     fn extract_connect(
         &mut self,
-        comment: &Option<Ref<Absyn::Comment>>,
+        comment: Option<&Ref<Absyn::Comment>>,
         info: &Absyn::Info,
         c1: &Absyn::ComponentRef,
         c2: &Absyn::ComponentRef,
@@ -383,18 +363,12 @@ impl Extraction<'_> {
         }
         let keep = self.opts.keep && has_line && na.fixed && nb.fixed;
         self.d.links.push(Link {
-            a,
-            pa,
-            b,
-            pb,
-            points: Vec::new(),
             eq_tok,
             semi_tok: semi,
             ann_tok: ann,
-            has_line,
             color,
-            smooth: false,
             keep,
+            ..Link::new(a, pa, b, pb)
         });
     }
 
@@ -410,7 +384,7 @@ impl Extraction<'_> {
             };
             match &**equation_ {
                 Absyn::EQ_CONNECT { connector1, connector2 } => {
-                    self.extract_connect(comment, info, connector1, connector2)
+                    self.extract_connect(comment.as_ref(), info, connector1, connector2)
                 }
                 Absyn::EQ_FOR {
                     forEquations: for_equations,
@@ -505,7 +479,7 @@ pub fn layout_of(lib: &mut Library, c: ClassId, opts: &Options) -> Option<Rc<Lay
     if !(lib.targets.contains(&file_path(&file)) && class_selected(&name, &opts.classes)) {
         return None;
     }
-    if !matches!(restriction_kind(&lib.classes[c].class), 1..=3) {
+    if !restriction_kind(&lib.classes[c].class).has_diagram() {
         return None;
     }
     let src = source_of(lib, &file)?;
@@ -600,7 +574,7 @@ pub fn diagram_classes(out: &mut Vec<ClassId>, lib: &mut Library, c: ClassId, de
     if !matches!(&*class.body, Absyn::PARTS { .. }) {
         return;
     }
-    if matches!(restriction_kind(&class), 1..=3) {
+    if restriction_kind(&class).has_diagram() {
         out.push(c);
     }
     let elements = lib.elements_of(c);
@@ -691,7 +665,7 @@ end P;";
         assert_eq!(d.links.len(), 2);
         assert_eq!((d.links[0].a, d.links[0].b), (0, 1));
         assert!(d.links[0].eq_tok.is_some() && d.links[0].ann_tok.is_none());
-        assert!(d.links[1].has_line && d.links[1].ann_tok.is_some());
+        assert!(d.links[1].ann_tok.is_some());
         let y = &d.nodes[0].ports[0];
         assert_eq!(
             (y.name.as_str(), y.ix, y.iy, y.known, y.causality),

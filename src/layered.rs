@@ -182,7 +182,7 @@ fn assign_layers(layer: &mut [usize], d: &Diagram, members: &[usize], link_ids: 
     nl
 }
 
-/// The offset of a port across the layer (positive towards later positions), and its fraction of the half size.
+/// The offset of a port across the layer, positive towards later positions.
 fn cross_offset(n: &Node, pi: Option<usize>, down: bool) -> f64 {
     let o = n.port_offset(pi);
     if down { o.0 } else { -o.1 }
@@ -196,6 +196,7 @@ fn main_size(n: &Node, down: bool) -> f64 {
     if down { n.h } else { n.w }
 }
 
+/// The offset of a port across the layer as a fraction of half the node's size across it.
 fn port_fraction(n: &Node, pi: Option<usize>, down: bool) -> f64 {
     cross_offset(n, pi, down) / (cross_size(n, down) / 2.0).max(1.0e-9)
 }
@@ -278,7 +279,7 @@ fn order_layers(
                 let mut cnt = 0_i64;
                 for &li in &inc[m] {
                     let l = &d.links[li];
-                    let (o, po) = if l.a == m { (l.b, l.pb) } else { (l.a, l.pa) };
+                    let (o, po, _) = l.seen_from(m);
                     if o == m || layer[o] == k || (layer[o] > k) == forward {
                         continue;
                     }
@@ -317,8 +318,8 @@ fn isotonic(z: &[f64]) -> Vec<f64> {
             && let [.., c0, c1] = counts[..]
             && s0 / c0 as f64 > s1 / c1 as f64
         {
-            sums.truncate(sums.len() - 1);
-            counts.truncate(counts.len() - 1);
+            sums.pop();
+            counts.pop();
             if let (Some(s), Some(c)) = (sums.last_mut(), counts.last_mut()) {
                 *s += s1;
                 *c += c1;
@@ -357,7 +358,7 @@ fn align_layer(
         let mut vals: Vec<f64> = Vec::new();
         for &li in &inc[m] {
             let l = &d.links[li];
-            let (o, po, pm) = if l.a == m { (l.b, l.pb, l.pa) } else { (l.a, l.pa, l.pb) };
+            let (o, po, pm) = l.seen_from(m);
             if o == m || layer[o] == 0 || layer[o] == k {
                 continue;
             }
@@ -482,23 +483,6 @@ mod tests {
     use super::*;
     use crate::diagram::{ACAUSAL, Link, Port};
 
-    fn link(a: usize, pa: Option<usize>, b: usize, pb: Option<usize>) -> Link {
-        Link {
-            a,
-            pa,
-            b,
-            pb,
-            points: Vec::new(),
-            eq_tok: None,
-            semi_tok: None,
-            ann_tok: None,
-            has_line: false,
-            color: String::new(),
-            smooth: false,
-            keep: false,
-        }
-    }
-
     fn port(name: &str, ix: f64, iy: f64, causality: i32) -> Port {
         Port {
             name: name.to_owned(),
@@ -565,9 +549,9 @@ mod tests {
             d.nodes.push(block(name));
         }
         // c.y -> b.u, b.y -> a.u: against the declaration order. a.y -> c.u closes the cycle.
-        d.links.push(link(1, Some(0), 2, Some(1)));
-        d.links.push(link(0, Some(0), 1, Some(1)));
-        d.links.push(link(0, Some(1), 2, Some(0)));
+        d.links.push(Link::new(1, Some(0), 2, Some(1)));
+        d.links.push(Link::new(0, Some(0), 1, Some(1)));
+        d.links.push(Link::new(0, Some(1), 2, Some(0)));
         let mut layer = vec![0; 3];
         assert_eq!(assign_layers(&mut layer, &d, &[0, 1, 2], &[0, 1, 2], false), 3);
         assert_eq!(layer, vec![3, 2, 1]);
@@ -579,9 +563,9 @@ mod tests {
         for name in ["a", "b", "c", "s"] {
             d.nodes.push(block(name));
         }
-        d.links.push(link(0, Some(1), 1, Some(0)));
-        d.links.push(link(1, Some(1), 2, Some(0)));
-        d.links.push(link(3, Some(1), 2, Some(0)));
+        d.links.push(Link::new(0, Some(1), 1, Some(0)));
+        d.links.push(Link::new(1, Some(1), 2, Some(0)));
+        d.links.push(Link::new(3, Some(1), 2, Some(0)));
         let mut layer = vec![0; 4];
         assert_eq!(assign_layers(&mut layer, &d, &[0, 1, 2, 3], &[0, 1, 2], false), 3);
         assert_eq!(layer, vec![1, 2, 3, 2]);
@@ -594,8 +578,8 @@ mod tests {
             d.nodes.push(block(name));
         }
         // a -> e and b -> c: the second layer is declared in the crossing order.
-        d.links.push(link(0, Some(1), 3, Some(0)));
-        d.links.push(link(1, Some(1), 2, Some(0)));
+        d.links.push(Link::new(0, Some(1), 3, Some(0)));
+        d.links.push(Link::new(1, Some(1), 2, Some(0)));
         let layer = vec![1, 1, 2, 2];
         let pos = vec![1.0, 2.0, 1.0, 2.0];
         assert_eq!(count_crossings(&d, &[0, 1], &layer, &pos, false), 1);
@@ -632,8 +616,8 @@ mod tests {
             d.nodes.push(block(name));
         }
         // a.y -> b.u and a.y -> c.u: b and c both want to be at 0 across the layer.
-        d.links.push(link(0, Some(1), 1, Some(0)));
-        d.links.push(link(0, Some(1), 2, Some(0)));
+        d.links.push(Link::new(0, Some(1), 1, Some(0)));
+        d.links.push(Link::new(0, Some(1), 2, Some(0)));
         let inc = incidence(&d);
         let layer = vec![1, 2, 2];
         let mut c = vec![0.0; 3];
@@ -649,8 +633,8 @@ mod tests {
         for name in ["a", "b", "c"] {
             d.nodes.push(block(name));
         }
-        d.links.push(link(0, Some(1), 1, Some(0)));
-        d.links.push(link(0, Some(1), 2, Some(0)));
+        d.links.push(Link::new(0, Some(1), 1, Some(0)));
+        d.links.push(Link::new(0, Some(1), 2, Some(0)));
         let inc = incidence(&d);
         layer_component(&mut d, &[0, 1, 2], &[0, 1], &inc, &Options::default());
         // Layers 50 apart (10 + 30 + 10); b above c, 40 apart; a between them. Each of the two

@@ -18,11 +18,13 @@
 
 use std::cmp::Ordering;
 
-use crate::diagram::{BOTTOM, Diagram, LEFT, Node, RIGHT};
+use crate::diagram::{BOTTOM, Diagram, LEFT, Node, RIGHT, is_horizontal};
 use crate::ends::LinkEnds;
 use crate::numbers::{float_order, sort_perm};
 use crate::placement::box_of;
 
+/// The routing grid: the lines through the link ends and around the nodes, the points that are
+/// blocked, and the nets that use each piece.
 pub struct Router {
     pub x: Vec<f64>,
     pub y: Vec<f64>,
@@ -134,7 +136,7 @@ pub fn build_router(d: &Diagram, e: &LinkEnds, step: f64, limit: usize) -> Optio
     let mut sy: Vec<f64> = Vec::new();
     let mut ny: Vec<usize> = Vec::new();
     for k in 0..e.side.len() {
-        if e.side[k] <= 2 {
+        if is_horizontal(e.side[k]) {
             sy.push(e.y[k]);
             ny.push(e.net[k / 2]);
         } else {
@@ -209,7 +211,8 @@ pub fn exit_point(r: &Router, e: &LinkEnds, k: usize, n: &Node) -> (usize, usize
     (line_index(&r.x, x), line_from(&r.y, (n.y + n.h / 2.0).max(y) + 5.0))
 }
 
-// The heap positions `i`, `p`, `c` are Julia's, from 1.
+/// Add `val` with the priority `key` to the router's heap, which gives the least key first.
+// The heap positions `i`, `p`, `c` count from 1.
 pub fn heap_push(r: &mut Router, key: f32, val: i32) {
     r.heap_key.push(key);
     r.heap_val.push(val);
@@ -227,7 +230,7 @@ pub fn heap_push(r: &mut Router, key: f32, val: i32) {
     r.heap_val[i - 1] = val;
 }
 
-/// The value with the least key; nothing when the heap is empty (Julia: not called then).
+/// The value with the least key; nothing when the heap is empty.
 pub fn heap_pop(r: &mut Router) -> Option<i32> {
     let top = *r.heap_val.first()?;
     let key = r.heap_key.pop()?;
@@ -333,20 +336,7 @@ mod tests {
             });
             d.nodes.push(n);
         }
-        d.links.push(Link {
-            a: 0,
-            pa: Some(0),
-            b: 1,
-            pb: Some(0),
-            points: Vec::new(),
-            eq_tok: None,
-            semi_tok: None,
-            ann_tok: None,
-            has_line: false,
-            color: String::new(),
-            smooth: false,
-            keep: false,
-        });
+        d.links.push(Link::new(0, Some(0), 1, Some(0)));
         d
     }
 

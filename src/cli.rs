@@ -49,13 +49,11 @@ pub struct CommandLine {
     pub svg_dir: String,
     pub help: bool,
     pub version: bool,
-    /// Why the command line cannot be understood, or "".
-    pub error: String,
 }
 
 impl CommandLine {
-    /// Set the option `name` that takes the value `value`. False when there is no such option.
-    fn set_value_option(&mut self, name: &str, value: &str) -> bool {
+    /// Set the option `name` that takes the value `value`.
+    fn set_value_option(&mut self, name: &str, value: &str) -> Result<(), String> {
         let o = &mut self.opts;
         match name {
             "-o" | "--output" => self.output = value.to_owned(),
@@ -69,27 +67,21 @@ impl CommandLine {
                 self.svg_dir = value.to_owned();
                 o.svg = true;
             }
-            "--scale" => match parse_float(value) {
-                Some(s) => o.scale = s,
-                None => self.error = format!("--scale: not a number: {value}"),
-            },
+            "--scale" => o.scale = parse_float(value).ok_or_else(|| format!("--scale: not a number: {value}"))?,
             "--spacing" => {
-                let parts: Vec<&str> = value.split(',').collect();
-                let dx = parse_float(parts[0]);
-                let dy = if parts.len() == 2 { parse_float(parts[1]) } else { None };
-                match dx {
-                    Some(dx) if parts.len() == 1 || (parts.len() == 2 && dy.is_some()) => {
-                        o.dx = dx;
-                        if let Some(dy) = dy {
-                            o.dy = dy;
-                        }
-                    }
-                    _ => self.error = format!("--spacing: expected DX or DX,DY: {value}"),
-                }
+                // "1,2,3" fails: parse_float("2,3") is none.
+                let (dx, dy) = match value.split_once(',') {
+                    None => (parse_float(value), Some(o.dy)),
+                    Some((x, y)) => (parse_float(x), parse_float(y)),
+                };
+                let (Some(dx), Some(dy)) = (dx, dy) else {
+                    return Err(format!("--spacing: expected DX or DX,DY: {value}"));
+                };
+                (o.dx, o.dy) = (dx, dy);
             }
-            _ => return false,
+            _ => return Err(format!("unknown option: {name}")),
         }
-        true
+        Ok(())
     }
 
     /// Set the option `name` that takes no value. False when there is no such option.
@@ -126,12 +118,12 @@ fn takes_value(name: &str) -> bool {
     )
 }
 
-/// The command line `args`; `error` is set when it cannot be understood.
-pub fn parse_arguments(args: &[String]) -> CommandLine {
+/// The command line `args`, or why it cannot be understood.
+pub fn parse_arguments(args: &[String]) -> Result<CommandLine, String> {
     let mut cl = CommandLine::default();
     let mut i = 0;
     let mut only_inputs = false;
-    while i < args.len() && cl.error.is_empty() {
+    while i < args.len() {
         let a = args[i].as_str();
         i += 1;
         if only_inputs || !a.starts_with('-') || a == "-" {
@@ -151,24 +143,19 @@ pub fn parse_arguments(args: &[String]) -> CommandLine {
                 Some(v) => v,
                 None => {
                     let Some(v) = args.get(i) else {
-                        cl.error = format!("{name}: a value is missing");
-                        break;
+                        return Err(format!("{name}: a value is missing"));
                     };
                     i += 1;
                     v.as_str()
                 }
             };
-            cl.set_value_option(name, value);
+            cl.set_value_option(name, value)?;
         } else if given.is_some() || !cl.set_flag(name) {
-            cl.error = format!("unknown option: {a}");
+            return Err(format!("unknown option: {a}"));
         }
     }
-    if cl.error.is_empty()
-        && let Err(msg) = cl.opts.check()
-    {
-        cl.error = msg;
-    }
-    cl
+    cl.opts.check()?;
+    Ok(cl)
 }
 
 /// White space as Julia's `isspace` has it.
@@ -207,10 +194,7 @@ pub fn split_arguments(s: &str) -> Vec<String> {
 /// --keep"`); options that name files are not allowed. Returns the new text and the warnings,
 /// one per line, or the error when there is no layout.
 pub fn layout_text(text: &str, file_name: &str, options: &str) -> Result<(String, String), String> {
-    let cl = parse_arguments(&split_arguments(options));
-    if !cl.error.is_empty() {
-        return Err(cl.error);
-    }
+    let cl = parse_arguments(&split_arguments(options))?;
     if !cl.inputs.is_empty()
         || !cl.output.is_empty()
         || cl.in_place
@@ -222,10 +206,7 @@ pub fn layout_text(text: &str, file_name: &str, options: &str) -> Result<(String
     {
         return Err(format!("only layout options are allowed here: {options}"));
     }
-    let res = layout_string(text, file_name, &cl.opts);
-    if !res.error.is_empty() {
-        return Err(res.error);
-    }
+    let res = layout_string(text, file_name, &cl.opts)?;
     Ok((res.text, res.warnings.join("\n")))
 }
 
@@ -274,28 +255,37 @@ mod tests {
         assert_eq!(words("-L \"/my libs\" -c \"\""), ["-L", "/my libs", "-c", ""]);
         let cl = parse_arguments(&words(
             "--spacing=40,25 --scale 2 -c A --class=B.C --no-rotate x.mo -- -y.mo",
-        ));
-        assert_eq!(cl.error, "");
+        ))
+        .unwrap();
         assert_eq!(
             (cl.opts.dx, cl.opts.dy, cl.opts.scale, cl.opts.rotate),
             (40.0, 25.0, 2.0, false)
         );
         assert_eq!(cl.opts.classes, ["A", "B.C"]);
         assert_eq!(cl.inputs, ["x.mo", "-y.mo"]);
-        assert_eq!(parse_arguments(&words("--scale")).error, "--scale: a value is missing");
-        assert_eq!(parse_arguments(&words("--scale x")).error, "--scale: not a number: x");
         assert_eq!(
-            parse_arguments(&words("--spacing 1,2,3")).error,
+            parse_arguments(&words("--scale")).unwrap_err(),
+            "--scale: a value is missing"
+        );
+        assert_eq!(
+            parse_arguments(&words("--scale x")).unwrap_err(),
+            "--scale: not a number: x"
+        );
+        assert_eq!(
+            parse_arguments(&words("--spacing 1,2,3")).unwrap_err(),
             "--spacing: expected DX or DX,DY: 1,2,3"
         );
         assert_eq!(
-            parse_arguments(&words("--spacing 1,")).error,
+            parse_arguments(&words("--spacing 1,")).unwrap_err(),
             "--spacing: expected DX or DX,DY: 1,"
         );
-        assert_eq!(parse_arguments(&words("--frob")).error, "unknown option: --frob");
-        assert_eq!(parse_arguments(&words("--keep=1")).error, "unknown option: --keep=1");
+        assert_eq!(parse_arguments(&words("--frob")).unwrap_err(), "unknown option: --frob");
         assert_eq!(
-            parse_arguments(&words("--layout circle")).error,
+            parse_arguments(&words("--keep=1")).unwrap_err(),
+            "unknown option: --keep=1"
+        );
+        assert_eq!(
+            parse_arguments(&words("--layout circle")).unwrap_err(),
             "unknown layout: circle"
         );
     }

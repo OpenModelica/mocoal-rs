@@ -214,7 +214,7 @@ fn wanted_position(d: &Diagram, i: usize, inc: &[Vec<usize>], opts: &Options) ->
     let mut count = 0_i64;
     for &li in &inc[i] {
         let l = &d.links[li];
-        let (o, po, pm) = if l.a == i { (l.b, l.pb, l.pa) } else { (l.a, l.pa, l.pb) };
+        let (o, po, pm) = l.seen_from(i);
         if o == i || !d.nodes[o].placed {
             continue;
         }
@@ -406,23 +406,6 @@ mod tests {
     use super::*;
     use crate::diagram::{Link, Node, Port};
 
-    fn link(a: usize, pa: Option<usize>, b: usize, pb: Option<usize>) -> Link {
-        Link {
-            a,
-            pa,
-            b,
-            pb,
-            points: Vec::new(),
-            eq_tok: None,
-            semi_tok: None,
-            ann_tok: None,
-            has_line: false,
-            color: String::new(),
-            smooth: false,
-            keep: false,
-        }
-    }
-
     fn port(name: &str, ix: f64, iy: f64) -> Port {
         Port {
             name: name.to_owned(),
@@ -464,8 +447,8 @@ mod tests {
         for name in ["a", "b", "c"] {
             d.nodes.push(Node::new(name, "Gain", 20.0, 20.0));
         }
-        d.links.push(link(0, None, 1, None));
-        d.links.push(link(1, None, 2, None));
+        d.links.push(Link::new(0, None, 1, None));
+        d.links.push(Link::new(1, None, 2, None));
         place_diagram(&mut d, &Options::default());
         assert_eq!(origins(&d), vec![(-50.0, 0.0), (0.0, 0.0), (50.0, 0.0)]);
         assert!(d.nodes.iter().all(|n| n.placed && n.rot == 0));
@@ -477,8 +460,8 @@ mod tests {
         for name in ["a", "b", "c"] {
             d.nodes.push(Node::new(name, "Gain", 20.0, 20.0));
         }
-        d.links.push(link(0, None, 1, None));
-        d.links.push(link(1, None, 2, None));
+        d.links.push(Link::new(0, None, 1, None));
+        d.links.push(Link::new(1, None, 2, None));
         let opts = Options {
             direction: "down".to_owned(),
             ..Options::default()
@@ -537,7 +520,7 @@ mod tests {
         d.nodes.push(Node::new("c", "A", 20.0, 20.0));
         d.nodes[0].fixed = true;
         d.nodes[0].placed = true;
-        d.links.push(link(0, None, 1, None));
+        d.links.push(Link::new(0, None, 1, None));
         let opts = Options {
             keep: true,
             ..Options::default()
@@ -567,8 +550,8 @@ mod tests {
         d.nodes.push(Node::new("down", "A", 20.0, 20.0));
         d.nodes[1].y = 50.0;
         d.nodes[2].y = -50.0;
-        d.links.push(link(0, Some(0), 1, None));
-        d.links.push(link(0, Some(1), 2, None));
+        d.links.push(Link::new(0, Some(0), 1, None));
+        d.links.push(Link::new(0, Some(1), 2, None));
         // Costs: 120 at 0, 161 at 90, 121 at 180, 81 at 270 degrees.
         assert!(choose_rotations(&mut d));
         assert_eq!((d.nodes[0].rot, d.nodes[0].w, d.nodes[0].h), (270, 20.0, 40.0));

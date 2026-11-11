@@ -1,0 +1,9 @@
+# The same bytes on every platform: the tests compare the layouts of test/models with
+# test/expected byte for byte, and the scripts run in bash.
+*.mo text eol=lf
+*.rs text eol=lf
+*.c text eol=lf
+*.sh text eol=lf
+*.md text eol=lf
+*.svg text eol=lf
+*.png binary

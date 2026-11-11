@@ -131,6 +131,15 @@ fn token_length(text: &str, at: usize, kind: &TokenKind) -> usize {
 }
 
 impl Source {
+    /// The line ending of the text, for the lines the edits add: "\r\n" when its first line ends so,
+    /// else "\n".
+    pub fn newline(&self) -> &'static str {
+        match self.text.find('\n') {
+            Some(i) if i > 0 && self.text.as_bytes()[i - 1] == b'\r' => "\r\n",
+            _ => "\n",
+        }
+    }
+
     /// Tokenize `text`. The error is the lexer's message.
     pub fn new(text: &str, file_name: &str) -> Result<Source, String> {
         let tokens = lexer::lex(text, Grammar::Modelica3).map_err(|e| e.to_string())?;

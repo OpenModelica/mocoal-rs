@@ -2,7 +2,7 @@
 
 Made with `mocoal` 0.1.0. The Julia program
 ([ModelicaComponentAutolayout.jl](https://github.com/JKRT/ModelicaComponentAutolayout.jl)) and the
-Rust program ([mocoal-rs](https://github.com/JKRT/mocoal-rs)) give the same files and SVGs, byte
+Rust program ([mocoal-rs](https://github.com/OpenModelica/mocoal-rs)) give the same files and SVGs, byte
 for byte. Both repositories have this directory.
 
 ## Drive: a model written as text

@@ -4,6 +4,7 @@
 # The parser crates of OpenModelica: scripts/fetch-omc.sh
 /omc/OMCompiler/
 *.svg
+!/examples/svg/*.svg
 .claude/
 CLAUDE.md
 .DS_Store

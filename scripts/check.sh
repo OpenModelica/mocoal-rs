@@ -5,8 +5,8 @@
 #
 # exe:  run mocoal on test/models/Chain.mo.
 # lib:  call libmocoal from the C program interface/test_lib.c.
-# sync: compare interface/ with the files of ModelicaComponentAutolayout.jl, where the interface
-#       is kept (MOCOAL_JL names its checkout, default ../ModelicaComponentAutolayout.jl).
+# sync: compare interface/ and examples/ with the files of ModelicaComponentAutolayout.jl, where
+#       the interface is kept (MOCOAL_JL names its checkout, default ../ModelicaComponentAutolayout.jl).
 # all:  exe, lib, and sync when that checkout is there.
 #
 # CARGO_TARGET names the directory of the build (default target/release), CC the C compiler
@@ -54,6 +54,7 @@ check_sync() {
   cmp interface/INTERFACE.md "$julia/INTERFACE.md" || return 1
   cmp interface/test_lib.c "$julia/juliac/test_lib.c" || return 1
   cmp "$model" "$julia/$model" || return 1
+  diff -r examples "$julia/examples" || return 1
   echo "interface: the copies are those of $julia"
 }
 

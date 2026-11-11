@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1560" height="720" viewBox="0 0 1560 720" font-family="Helvetica, Arial, sans-serif">
+<title>Modelica.Mechanics.Rotational.Examples.CoupledClutches</title>
+<rect width="100%" height="100%" fill="white"/>
+<rect x="60" y="60" width="1440" height="600" fill="none" stroke="#bbbbbb" stroke-dasharray="6 4"/>
+<polyline fill="none" stroke="#444444" stroke-width="1.5" points="360,540 435,540 435,420 450,420 "/>
+<polyline fill="none" stroke="#444444" stroke-width="1.5" points="510,420 585,420 585,336 600,336 "/>
+<polyline fill="none" stroke="#444444" stroke-width="1.5" points="660,336 750,336 "/>
+<polyline fill="none" stroke="#444444" stroke-width="1.5" points="810,336 885,336 885,294 900,294 "/>
+<polyline fill="none" stroke="#444444" stroke-width="1.5" points="960,294 1050,294 "/>
+<polyline fill="none" stroke="#444444" stroke-width="1.5" points="1110,294 1185,294 1185,249 1200,249 "/>
+<polyline fill="none" stroke="#444444" stroke-width="1.5" points="1260,249 1350,249 "/>
+<polyline fill="none" stroke="rgb(0,0,127)" stroke-width="1.5" points="213,540 294,540 "/>
+<polyline fill="none" stroke="rgb(0,0,127)" stroke-width="1.5" points="513,300 585,300 585,285 630,285 630,303 "/>
+<polyline fill="none" stroke="rgb(0,0,127)" stroke-width="1.5" points="813,216 930,216 930,261 "/>
+<polyline fill="none" stroke="rgb(0,0,127)" stroke-width="1.5" points="1113,174 1230,174 1230,216 "/>
+<polyline fill="none" stroke="rgb(192,192,192)" stroke-width="1.5" points="480,570 375,570 375,585 330,585 330,570 "/>
+<rect x="450" y="390" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="450" cy="420" r="3" fill="#444444"/>
+<circle cx="510" cy="420" r="3" fill="#444444"/>
+<text x="480" y="386" font-size="11" text-anchor="middle" fill="#222222">J1</text>
+<rect x="300" y="510" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="360" cy="540" r="3" fill="#444444"/>
+<circle cx="294" cy="540" r="3" fill="rgb(0,0,127)"/>
+<circle cx="330" cy="570" r="3" fill="rgb(192,192,192)"/>
+<text x="330" y="506" font-size="11" text-anchor="middle" fill="#222222">torque</text>
+<rect x="600" y="306" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="600" cy="336" r="3" fill="#444444"/>
+<circle cx="660" cy="336" r="3" fill="#444444"/>
+<circle cx="630" cy="303" r="3" fill="rgb(0,0,127)"/>
+<text x="630" y="302" font-size="11" text-anchor="middle" fill="#222222">clutch1</text>
+<rect x="150" y="510" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="213" cy="540" r="3" fill="rgb(0,0,127)"/>
+<text x="180" y="506" font-size="11" text-anchor="middle" fill="#222222">sin1</text>
+<rect x="750" y="186" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="813" cy="216" r="3" fill="rgb(0,0,127)"/>
+<text x="780" y="182" font-size="11" text-anchor="middle" fill="#222222">step1</text>
+<rect x="750" y="306" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="750" cy="336" r="3" fill="#444444"/>
+<circle cx="810" cy="336" r="3" fill="#444444"/>
+<text x="780" y="302" font-size="11" text-anchor="middle" fill="#222222">J2</text>
+<rect x="900" y="264" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="900" cy="294" r="3" fill="#444444"/>
+<circle cx="960" cy="294" r="3" fill="#444444"/>
+<circle cx="930" cy="261" r="3" fill="rgb(0,0,127)"/>
+<text x="930" y="260" font-size="11" text-anchor="middle" fill="#222222">clutch2</text>
+<rect x="1050" y="264" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="1050" cy="294" r="3" fill="#444444"/>
+<circle cx="1110" cy="294" r="3" fill="#444444"/>
+<text x="1080" y="260" font-size="11" text-anchor="middle" fill="#222222">J3</text>
+<rect x="1200" y="219" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="1200" cy="249" r="3" fill="#444444"/>
+<circle cx="1260" cy="249" r="3" fill="#444444"/>
+<circle cx="1230" cy="216" r="3" fill="rgb(0,0,127)"/>
+<text x="1230" y="215" font-size="11" text-anchor="middle" fill="#222222">clutch3</text>
+<rect x="1350" y="219" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="1350" cy="249" r="3" fill="#444444"/>
+<text x="1380" y="215" font-size="11" text-anchor="middle" fill="#222222">J4</text>
+<rect x="450" y="270" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="513" cy="300" r="3" fill="rgb(0,0,127)"/>
+<text x="480" y="266" font-size="11" text-anchor="middle" fill="#222222">sin2</text>
+<rect x="1050" y="144" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="1113" cy="174" r="3" fill="rgb(0,0,127)"/>
+<text x="1080" y="140" font-size="11" text-anchor="middle" fill="#222222">step2</text>
+<rect x="450" y="540" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="480" cy="570" r="3" fill="#444444"/>
+<text x="480" y="536" font-size="11" text-anchor="middle" fill="#222222">fixed</text>
+</svg>

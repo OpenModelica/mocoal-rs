@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="960" viewBox="0 0 900 960" font-family="Helvetica, Arial, sans-serif">
+<title>Modelica.Electrical.Analog.Examples.CauerLowPassAnalog</title>
+<rect width="100%" height="100%" fill="white"/>
+<rect x="60" y="60" width="780" height="840" fill="none" stroke="#bbbbbb" stroke-dasharray="6 4"/>
+<polyline fill="none" stroke="rgb(0,0,255)" stroke-width="1.5" points="210,690 210,660 390,660 "/>
+<polyline fill="none" stroke="rgb(0,0,255)" stroke-width="1.5" points="450,660 465,660 465,705 720,705 720,744 "/>
+<polyline fill="none" stroke="rgb(0,0,255)" stroke-width="1.5" points="690,294 165,294 165,420 180,420 "/>
+<polyline fill="none" stroke="rgb(0,0,255)" stroke-width="1.5" points="690,294 360,294 360,660 390,660 "/>
+<polyline fill="none" stroke="rgb(0,0,255)" stroke-width="1.5" points="750,294 765,294 765,360 375,360 375,420 240,420 "/>
+<polyline fill="none" stroke="rgb(0,0,255)" stroke-width="1.5" points="240,420 375,420 375,375 675,375 675,414 690,414 "/>
+<polyline fill="none" stroke="rgb(0,0,255)" stroke-width="1.5" points="240,420 390,420 "/>
+<polyline fill="none" stroke="rgb(0,0,255)" stroke-width="1.5" points="240,420 345,420 345,174 690,174 "/>
+<polyline fill="none" stroke="rgb(0,0,255)" stroke-width="1.5" points="750,174 765,174 765,240 660,240 660,420 450,420 "/>
+<polyline fill="none" stroke="rgb(0,0,255)" stroke-width="1.5" points="450,420 675,420 675,480 720,480 720,504 "/>
+<polyline fill="none" stroke="rgb(0,0,255)" stroke-width="1.5" points="450,420 660,420 660,600 720,600 720,624 "/>
+<polyline fill="none" stroke="rgb(0,0,255)" stroke-width="1.5" points="450,660 675,660 675,585 765,585 765,414 750,414 "/>
+<polyline fill="none" stroke="rgb(0,0,255)" stroke-width="1.5" points="450,660 675,660 675,585 720,585 720,564 "/>
+<polyline fill="none" stroke="rgb(0,0,255)" stroke-width="1.5" points="720,684 720,705 465,705 465,660 450,660 "/>
+<polyline fill="none" stroke="rgb(0,0,255)" stroke-width="1.5" points="210,750 210,780 390,780 "/>
+<polyline fill="none" stroke="rgb(0,0,255)" stroke-width="1.5" points="450,780 465,780 465,705 720,705 720,744 "/>
+<rect x="690" y="744" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="720" cy="744" r="3" fill="rgb(0,0,255)"/>
+<text x="720" y="740" font-size="11" text-anchor="middle" fill="#222222">G</text>
+<rect x="390" y="630" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="390" cy="660" r="3" fill="rgb(0,0,255)"/>
+<circle cx="450" cy="660" r="3" fill="rgb(0,0,255)"/>
+<text x="420" y="626" font-size="11" text-anchor="middle" fill="#222222">C1</text>
+<rect x="180" y="390" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="180" cy="420" r="3" fill="rgb(0,0,255)"/>
+<circle cx="240" cy="420" r="3" fill="rgb(0,0,255)"/>
+<text x="210" y="386" font-size="11" text-anchor="middle" fill="#222222">C2</text>
+<rect x="690" y="384" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="690" cy="414" r="3" fill="rgb(0,0,255)"/>
+<circle cx="750" cy="414" r="3" fill="rgb(0,0,255)"/>
+<text x="720" y="380" font-size="11" text-anchor="middle" fill="#222222">C3</text>
+<rect x="390" y="390" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="390" cy="420" r="3" fill="rgb(0,0,255)"/>
+<circle cx="450" cy="420" r="3" fill="rgb(0,0,255)"/>
+<text x="420" y="386" font-size="11" text-anchor="middle" fill="#222222">C4</text>
+<rect x="690" y="504" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="720" cy="504" r="3" fill="rgb(0,0,255)"/>
+<circle cx="720" cy="564" r="3" fill="rgb(0,0,255)"/>
+<text x="720" y="500" font-size="11" text-anchor="middle" fill="#222222">C5</text>
+<rect x="690" y="264" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="690" cy="294" r="3" fill="rgb(0,0,255)"/>
+<circle cx="750" cy="294" r="3" fill="rgb(0,0,255)"/>
+<text x="720" y="260" font-size="11" text-anchor="middle" fill="#222222">L1</text>
+<rect x="690" y="144" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="690" cy="174" r="3" fill="rgb(0,0,255)"/>
+<circle cx="750" cy="174" r="3" fill="rgb(0,0,255)"/>
+<text x="720" y="140" font-size="11" text-anchor="middle" fill="#222222">L2</text>
+<rect x="180" y="690" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="210" cy="690" r="3" fill="rgb(0,0,255)"/>
+<circle cx="210" cy="750" r="3" fill="rgb(0,0,255)"/>
+<text x="210" y="686" font-size="11" text-anchor="middle" fill="#222222">R1</text>
+<rect x="690" y="624" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="720" cy="624" r="3" fill="rgb(0,0,255)"/>
+<circle cx="720" cy="684" r="3" fill="rgb(0,0,255)"/>
+<text x="720" y="620" font-size="11" text-anchor="middle" fill="#222222">R2</text>
+<rect x="390" y="750" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="390" cy="780" r="3" fill="rgb(0,0,255)"/>
+<circle cx="450" cy="780" r="3" fill="rgb(0,0,255)"/>
+<text x="420" y="746" font-size="11" text-anchor="middle" fill="#222222">V</text>
+</svg>

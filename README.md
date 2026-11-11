@@ -13,6 +13,9 @@ same command line, the same C interface, the same output. Two forms, one crate:
 The README of ModelicaComponentAutolayout.jl describes the options, the rules of the layout and
 the limitations. This file has what differs.
 
+[examples/](examples/README.md): a model written as text (Drive), and six examples of the Modelica
+Standard Library, before and after, in OMEdit.
+
 ## Build
 
 Rust 1.99 (stable) and git.
@@ -47,6 +50,7 @@ come from GitHub (38 s). A new parser: change `omc/COMMIT`, fetch, build, run th
 [interface/test_lib.c](interface/test_lib.c) the C program that tests it. Both are copies: the
 files are kept in ModelicaComponentAutolayout.jl (`INTERFACE.md`, `juliac/test_lib.c`). A change
 of the interface goes into both repositories; `scripts/check.sh sync` fails when a copy differs.
+It also compares `examples/`, which both repositories have.
 
 ```c
 char *mocoal_layout(const char *text, const char *file_name, const char *options);

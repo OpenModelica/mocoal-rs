@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1380" height="720" viewBox="0 0 1380 720" font-family="Helvetica, Arial, sans-serif">
+<title>Modelica.Blocks.Examples.PID_Controller</title>
+<rect width="100%" height="100%" fill="white"/>
+<rect x="60" y="60" width="1260" height="600" fill="none" stroke="#bbbbbb" stroke-dasharray="6 4"/>
+<polyline fill="none" stroke="#444444" stroke-width="1.5" points="930,420 1020,420 "/>
+<polyline fill="none" stroke="#444444" stroke-width="1.5" points="780,420 870,420 "/>
+<polyline fill="none" stroke="#444444" stroke-width="1.5" points="630,396 705,396 705,420 720,420 "/>
+<polyline fill="none" stroke="rgb(0,0,127)" stroke-width="1.5" points="183,330 240,330 240,312 264,312 "/>
+<polyline fill="none" stroke="#444444" stroke-width="1.5" points="270,432 255,432 255,480 795,480 795,420 780,420 "/>
+<polyline fill="none" stroke="#444444" stroke-width="1.5" points="1215,420 1230,420 1230,450 1095,450 1095,420 1080,420 "/>
+<polyline fill="none" stroke="rgb(0,0,127)" stroke-width="1.5" points="483,396 564,396 "/>
+<polyline fill="none" stroke="rgb(0,0,127)" stroke-width="1.5" points="333,432 405,432 405,450 450,450 450,432 "/>
+<polyline fill="none" stroke="rgb(0,0,127)" stroke-width="1.5" points="333,312 390,312 390,396 414,396 "/>
+<rect x="420" y="366" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="483" cy="396" r="3" fill="rgb(0,0,127)"/>
+<circle cx="450" cy="432" r="3" fill="rgb(0,0,127)"/>
+<circle cx="414" cy="396" r="3" fill="rgb(0,0,127)"/>
+<text x="450" y="362" font-size="11" text-anchor="middle" fill="#222222">PI</text>
+<rect x="720" y="390" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="780" cy="420" r="3" fill="#444444"/>
+<circle cx="720" cy="420" r="3" fill="#444444"/>
+<text x="750" y="386" font-size="11" text-anchor="middle" fill="#222222">inertia1</text>
+<rect x="570" y="366" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="630" cy="396" r="3" fill="#444444"/>
+<circle cx="564" cy="396" r="3" fill="rgb(0,0,127)"/>
+<text x="600" y="362" font-size="11" text-anchor="middle" fill="#222222">torque</text>
+<rect x="870" y="390" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="930" cy="420" r="3" fill="#444444"/>
+<circle cx="870" cy="420" r="3" fill="#444444"/>
+<text x="900" y="386" font-size="11" text-anchor="middle" fill="#222222">spring</text>
+<rect x="1020" y="390" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="1020" cy="420" r="3" fill="#444444"/>
+<circle cx="1080" cy="420" r="3" fill="#444444"/>
+<text x="1050" y="386" font-size="11" text-anchor="middle" fill="#222222">inertia2</text>
+<rect x="120" y="300" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="183" cy="330" r="3" fill="rgb(0,0,127)"/>
+<text x="150" y="296" font-size="11" text-anchor="middle" fill="#222222">kinematicPTP</text>
+<rect x="270" y="282" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="264" cy="312" r="3" fill="rgb(0,0,127)"/>
+<circle cx="333" cy="312" r="3" fill="rgb(0,0,127)"/>
+<text x="300" y="278" font-size="11" text-anchor="middle" fill="#222222">integrator</text>
+<rect x="270" y="402" width="60" height="60" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="270" cy="432" r="3" fill="#444444"/>
+<circle cx="333" cy="432" r="3" fill="rgb(0,0,127)"/>
+<text x="300" y="398" font-size="11" text-anchor="middle" fill="#222222">speedSensor</text>
+<rect x="1185" y="405" width="30" height="30" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="1215" cy="420" r="3" fill="#444444"/>
+<text x="1200" y="401" font-size="11" text-anchor="middle" fill="#222222">loadTorque</text>
+</svg>

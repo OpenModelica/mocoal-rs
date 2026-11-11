@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" font-family="Helvetica, Arial, sans-serif">
+<title>Modelica.Mechanics.Rotational.Examples.First</title>
+<rect width="100%" height="100%" fill="white"/>
+<rect x="60" y="60" width="1080" height="600" fill="none" stroke="#bbbbbb" stroke-dasharray="6 4"/>
+<polyline fill="none" stroke="#444444" stroke-width="1.5" points="474,390 576,390 "/>
+<polyline fill="none" stroke="#444444" stroke-width="1.5" points="624,390 726,390 "/>
+<polyline fill="none" stroke="#444444" stroke-width="1.5" points="774,390 855,390 855,294 876,294 "/>
+<polyline fill="none" stroke="#444444" stroke-width="1.5" points="924,294 1026,294 "/>
+<polyline fill="none" stroke="#444444" stroke-width="1.5" points="876,402 795,402 795,390 774,390 "/>
+<polyline fill="none" stroke="#444444" stroke-width="1.5" points="924,402 1005,402 1005,414 1050,414 "/>
+<polyline fill="none" stroke="rgb(0,0,127)" stroke-width="1.5" points="176.4,390 271.2,390 "/>
+<polyline fill="none" stroke="rgb(192,192,192)" stroke-width="1.5" points="300,414 300,450 1005,450 1005,414 1050,414 "/>
+<polyline fill="none" stroke="rgb(192,192,192)" stroke-width="1.5" points="600,414 600,450 1005,450 1005,414 1050,414 "/>
+<polyline fill="none" stroke="#444444" stroke-width="1.5" points="324,390 426,390 "/>
+<rect x="1026" y="390" width="48" height="48" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="1050" cy="414" r="3" fill="#444444"/>
+<text x="1050" y="386" font-size="11" text-anchor="middle" fill="#222222">fixed</text>
+<rect x="276" y="366" width="48" height="48" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="271.2" cy="390" r="3" fill="rgb(0,0,127)"/>
+<circle cx="300" cy="414" r="3" fill="rgb(192,192,192)"/>
+<circle cx="324" cy="390" r="3" fill="#444444"/>
+<text x="300" y="362" font-size="11" text-anchor="middle" fill="#222222">torque</text>
+<rect x="426" y="366" width="48" height="48" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="474" cy="390" r="3" fill="#444444"/>
+<circle cx="426" cy="390" r="3" fill="#444444"/>
+<text x="450" y="362" font-size="11" text-anchor="middle" fill="#222222">inertia1</text>
+<rect x="576" y="366" width="48" height="48" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="576" cy="390" r="3" fill="#444444"/>
+<circle cx="624" cy="390" r="3" fill="#444444"/>
+<circle cx="600" cy="414" r="3" fill="rgb(192,192,192)"/>
+<text x="600" y="362" font-size="11" text-anchor="middle" fill="#222222">idealGear</text>
+<rect x="726" y="366" width="48" height="48" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="726" cy="390" r="3" fill="#444444"/>
+<circle cx="774" cy="390" r="3" fill="#444444"/>
+<text x="750" y="362" font-size="11" text-anchor="middle" fill="#222222">inertia2</text>
+<rect x="876" y="270" width="48" height="48" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="876" cy="294" r="3" fill="#444444"/>
+<circle cx="924" cy="294" r="3" fill="#444444"/>
+<text x="900" y="266" font-size="11" text-anchor="middle" fill="#222222">spring</text>
+<rect x="1026" y="270" width="48" height="48" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="1026" cy="294" r="3" fill="#444444"/>
+<text x="1050" y="266" font-size="11" text-anchor="middle" fill="#222222">inertia3</text>
+<rect x="876" y="378" width="48" height="48" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="876" cy="402" r="3" fill="#444444"/>
+<circle cx="924" cy="402" r="3" fill="#444444"/>
+<text x="900" y="374" font-size="11" text-anchor="middle" fill="#222222">damper</text>
+<rect x="126" y="366" width="48" height="48" fill="#f2f2f2" stroke="#222222"/>
+<circle cx="176.4" cy="390" r="3" fill="rgb(0,0,127)"/>
+<text x="150" y="362" font-size="11" text-anchor="middle" fill="#222222">sine</text>
+</svg>

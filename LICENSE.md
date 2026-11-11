@@ -56,6 +56,36 @@ The two kernel functions of `sind` and `cosd` come, through Julia, from openlibm
 > software is freely granted, provided that this notice
 > is preserved.
 
+`examples/` shows six example models of the Modelica Standard Library (MSL) 4.1.0: OMEdit
+pictures of their diagrams with the library's layout and with mocoal's, and SVG previews of
+mocoal's layout. `examples/Drive.mo` uses MSL classes by name. No MSL files are in this
+repository. `test/library/Parts.mo` is written for the tests; its class and connector names, the
+placements of its connectors and the triangle icon of `RealInput` and `RealOutput` follow the MSL.
+
+The MSL is licensed by the Modelica Association under the 3-Clause BSD License, Copyright (c)
+1998-2025, Modelica Association and contributors (https://github.com/modelica/ModelicaStandardLibrary):
+
+> Redistribution and use in source and binary forms, with or without modification, are permitted
+> provided that the following conditions are met:
+>
+> 1. Redistributions of source code must retain the above copyright notice, this list of
+>    conditions and the following disclaimer.
+> 2. Redistributions in binary form must reproduce the above copyright notice, this list of
+>    conditions and the following disclaimer in the documentation and/or other materials provided
+>    with the distribution.
+> 3. Neither the name of the copyright holder nor the names of its contributors may be used to
+>    endorse or promote products derived from this software without specific prior written
+>    permission.
+>
+> THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+> IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+> FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+> CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+> DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+> DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+> IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+> OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 ### Linked into the program and the library
 
 Not in this repository; the build fetches them.

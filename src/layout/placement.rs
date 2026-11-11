@@ -303,10 +303,12 @@ fn sign(x: f64) -> f64 {
 }
 
 /// Turn the components whose connectors are all acausal (two-pin electrical, mechanical or thermal
-/// parts) so that their connectors face the nodes they connect to. A node is turned by 0, 90, 180
-/// or 270 degrees, whichever makes the lines from its connectors to the centres of its neighbours
-/// shortest and leaves no connector facing away from its neighbour. Returns true when a node was
-/// turned (or turned back).
+/// parts) so that their connectors face the nodes they connect to. A part with one connected
+/// connector is turned only when that connector is on the left or right of its icon (a boundary or
+/// a sink), not when it is on top (a ground or a fixed flange hangs below its neighbour). A node is
+/// turned by 0, 90, 180 or 270 degrees, whichever makes the lines from its connectors to the
+/// centres of its neighbours shortest and leaves no connector facing away from its neighbour.
+/// Returns true when a node was turned (or turned back).
 fn choose_rotations(d: &mut Diagram) -> bool {
     let n = d.nodes.len();
     let mut used: Vec<Vec<usize>> = vec![Vec::new(); n];
@@ -340,7 +342,11 @@ fn choose_rotations(d: &mut Diagram) -> bool {
                 distinct.push(pi);
             }
         }
-        if !(ok && distinct.len() >= 2) {
+        let side_port = |pi: usize| {
+            let o = nd.port_offset_at(Some(pi), 0);
+            o.0.abs() > o.1.abs()
+        };
+        if !(ok && (distinct.len() >= 2 || side_port(distinct[0]))) {
             continue;
         }
         let mut best = 0_i32;
@@ -555,6 +561,27 @@ mod tests {
         // Costs: 120 at 0, 161 at 90, 121 at 180, 81 at 270 degrees.
         assert!(choose_rotations(&mut d));
         assert_eq!((d.nodes[0].rot, d.nodes[0].w, d.nodes[0].h), (270, 20.0, 40.0));
+        assert!(!choose_rotations(&mut d));
+    }
+
+    #[test]
+    fn one_port_part_turns_only_with_a_side_port() {
+        let mut d = Diagram::new("M");
+        let mut sink = Node::new("sink", "Boundary", 20.0, 20.0);
+        sink.add_port(port("port", 100.0, 0.0));
+        let mut ground = Node::new("ground", "Ground", 20.0, 20.0);
+        ground.add_port(port("p", 0.0, 100.0));
+        d.nodes.push(sink);
+        d.nodes.push(ground);
+        d.nodes.push(Node::new("left", "A", 20.0, 20.0));
+        d.nodes[0].x = 50.0;
+        d.nodes[1].x = 50.0;
+        d.nodes[1].y = -50.0;
+        d.links.push(Link::new(2, None, 0, Some(0)));
+        d.links.push(Link::new(2, None, 1, Some(0)));
+        // The sink: 80 at 0 (its port faces away), 41 at 180 degrees. The ground keeps its port on top.
+        assert!(choose_rotations(&mut d));
+        assert_eq!((d.nodes[0].rot, d.nodes[1].rot), (180, 0));
         assert!(!choose_rotations(&mut d));
     }
 }

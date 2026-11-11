@@ -37,6 +37,11 @@ mocoal -n --svg svg -c Modelica.Electrical.Analog.Examples.ChuaCircuit Modelica
 
 ![ChuaCircuit in OMEdit, before and after](omedit/Modelica.Electrical.Analog.Examples.ChuaCircuit.png)
 
+The six models and their original layouts are from the Modelica Standard Library 4.1.0, 3-Clause
+BSD License, Copyright (c) 1998-2025, Modelica Association and contributors (see
+[LICENSE.md](../LICENSE.md)). The library's files are not in this repository; `Drive.mo` uses its
+classes by name.
+
 The OMEdit pictures are from OpenModelica 1.27.1. The SVG previews are mocoal's own
 (`--svg`): boxes for the components, the lines as routed.
 

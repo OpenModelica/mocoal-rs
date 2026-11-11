@@ -152,7 +152,9 @@ Rules:
   icon's border (inputs left, outputs right).
 - Components whose connectors are all acausal (two-pin electrical, mechanical and thermal parts)
   are turned by 0, 90, 180 or 270 degrees so that their connectors face their neighbours: the
-  layout runs, the parts are turned, the layout runs again (up to 3 times). `--no-rotate` leaves
+  layout runs, the parts are turned, the layout runs again (up to 3 times). A part with one
+  connected connector (a boundary, a sink) is turned when that connector is on the left or right of
+  its icon; one with its connector on top (a ground, a fixed flange) is not. `--no-rotate` leaves
   them unturned.
 - The shapes of the Diagram layer (`Diagram(graphics={...})`) belong to the old layout:
   a rectangle that held components becomes the frame of those components, a text inside it or up
@@ -200,14 +202,16 @@ cargo fmt -p mocoal -- --check
 cargo clippy -p mocoal --all-targets --no-deps -- -D warnings
 ```
 
-57 tests, 0.3 s. Among them `layouts` in [src/tests.rs](src/tests.rs): 12 cases on the 7 models
-in [test/models](test/models) (8 to 26 components, 16 to 35 connections; a cascade control, an RC
-ladder, a resistor mesh, a drive train, a chain of 24 gains, and the rules of the layout), which
-use the parts in [test/library/Parts.mo](test/library/Parts.mo), not the MSL. Each result must equal
+57 tests, 0.3 s. Among them `layouts` in [src/tests.rs](src/tests.rs): 14 cases on the 8 models
+in [test/models](test/models) (a cascade control, an RC ladder, a resistor mesh, a drive train, a
+chain of 24 gains, the rules of the layout, and the cases of the OpenModelica issues #7232 and
+#16959), which use the parts in [test/library/Parts.mo](test/library/Parts.mo), not the MSL
+([test/README.md](test/README.md) gives the origin of each file). Each result must equal
 its file in [test/expected](test/expected) byte for byte: the `Placement` and `Line` coordinates.
 On the laid-out diagram of each class it checks that no two components overlap, every line ends at
 its ports, orthogonal lines are axis-aligned and pass through no component, and a second layout
-changes nothing. After an intended change of the layout:
+changes nothing; with `--keep`, every `Placement` of the input stays as it was. After an intended
+change of the layout:
 
 ```bash
 MOCOAL_BLESS=1 cargo test -p mocoal layouts

@@ -91,7 +91,7 @@ Releases a result of `mocoal_layout`. `NULL` is allowed.
 | `--direction NAME` | `right`, `down` | `right` | The direction of the signal flow. |
 | `--spacing DX[,DY]` | numbers ≥ 0 | `30,20` | The space between components. |
 | `--scale S` | a number > 0 | `1` | Factor on the component size. |
-| `--no-rotate` | | off | Do not turn two-pin components. |
+| `--no-rotate` | | off | Do not turn components whose connectors are all acausal. |
 | `--graphics NAME` | `move`, `keep`, `drop` | `move` | What happens to the shapes of the Diagram layer. |
 | `-L`, `--library DIR` | a directory | none | A directory with libraries, for the class lookup. May be repeated; searched in the order given. |
 

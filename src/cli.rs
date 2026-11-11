@@ -9,9 +9,9 @@
 //! Mirrors `src/cli.jl` of ModelicaComponentAutolayout.jl.
 
 use crate::api::layout_string;
-use crate::lookup::{is_dir, is_file, join_path};
 use crate::numbers::parse_float;
 use crate::options::Options;
+use crate::source::lookup::{is_dir, is_file, join_path};
 
 pub const USAGE_TEXT: &str = "usage: mocoal [options] file.mo|directory ...
 

@@ -10,9 +10,9 @@
 
 use std::collections::HashMap;
 
-use crate::diagram::{BOTTOM, Diagram, LEFT, Node, Point, RIGHT, TOP, is_horizontal};
+use crate::layout::diagram::{BOTTOM, Diagram, LEFT, Node, Point, RIGHT, TOP, is_horizontal};
+use crate::layout::placement::find_root;
 use crate::numbers::sort_perm;
-use crate::placement::find_root;
 
 /// The ends of all links. End `2k` is end `a` of link k, end `2k + 1` its end `b`. `side` is the
 /// side on which the line leaves the node (1 left, 2 right, 3 bottom, 4 top). `net` numbers the
@@ -203,7 +203,7 @@ pub fn simple_route(a: Point, sa: i32, b: Point, sb: i32) -> Vec<Point> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::diagram::{Link, Port};
+    use crate::layout::diagram::{Link, Port};
 
     fn node(name: &str, x: f64, y: f64) -> Node {
         let mut n = Node::new(name, "T", 20.0, 20.0);

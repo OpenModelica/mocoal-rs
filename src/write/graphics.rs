@@ -22,11 +22,11 @@
 
 use openmodelica_ast::parser::lexer::TokenKind;
 
-use crate::annotate::{arg_lpar, diagram_extent, extent_text, find_arg, point_text, set_extent};
-use crate::diagram::Diagram;
+use crate::layout::diagram::Diagram;
 use crate::numbers::parse_float;
 use crate::options::Options;
-use crate::tokens::{Arg, Edit, Source};
+use crate::source::tokens::{Arg, Edit, Source};
+use crate::write::annotate::{arg_lpar, diagram_extent, extent_text, find_arg, point_text, set_extent};
 
 /// The space between a frame and the components it holds.
 const FRAME_MARGIN: f64 = 12.0;

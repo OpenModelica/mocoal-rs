@@ -20,7 +20,7 @@
 
 use std::collections::HashMap;
 
-use crate::diagram::{BOTTOM, Diagram, INPUT, LEFT, Node, OUTPUT, RIGHT, TOP};
+use crate::layout::diagram::{BOTTOM, Diagram, INPUT, LEFT, Node, OUTPUT, RIGHT, TOP};
 use crate::numbers::{float_order, sort_perm};
 use crate::options::Options;
 
@@ -481,7 +481,7 @@ pub fn layer_component(d: &mut Diagram, members: &[usize], link_ids: &[usize], i
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::diagram::{ACAUSAL, Link, Port};
+    use crate::layout::diagram::{ACAUSAL, Link, Port};
 
     fn port(name: &str, ix: f64, iy: f64, causality: i32) -> Port {
         Port {

@@ -8,8 +8,8 @@
 //! and the connection lines. It shows the layout, not the icons.
 //! Mirrors `src/svg.jl` of ModelicaComponentAutolayout.jl.
 
-use crate::absyn::format_number;
-use crate::diagram::Diagram;
+use crate::layout::diagram::Diagram;
+use crate::source::absyn::format_number;
 
 /// `{r,g,b}` as an SVG colour, or `default`.
 pub fn svg_color(c: &str, default: &str) -> String {
@@ -126,7 +126,7 @@ pub fn svg_diagram(d: &Diagram) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::diagram::{Link, Node, Port};
+    use crate::layout::diagram::{Link, Node, Port};
 
     fn link(points: Vec<(f64, f64)>, color: &str, smooth: bool) -> Link {
         Link {

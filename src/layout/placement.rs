@@ -12,10 +12,10 @@
 //! nodes they connect to.
 //! Mirrors `src/placement.jl` of ModelicaComponentAutolayout.jl.
 
-use crate::diagram::{ACAUSAL, Diagram, Point, overlaps, side_vector};
-use crate::layered::layer_component;
+use crate::layout::diagram::{ACAUSAL, Diagram, Point, overlaps, side_vector};
+use crate::layout::layered::layer_component;
+use crate::layout::spring::spring_component;
 use crate::options::Options;
-use crate::spring::spring_component;
 
 /// The root of `i0` in the union-find forest `parent`; the path to it is halved.
 pub fn find_root(parent: &mut [usize], i0: usize) -> usize {
@@ -404,7 +404,7 @@ pub fn place_diagram(d: &mut Diagram, opts: &Options) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::diagram::{Link, Node, Port};
+    use crate::layout::diagram::{Link, Node, Port};
 
     fn port(name: &str, ix: f64, iy: f64) -> Port {
         Port {

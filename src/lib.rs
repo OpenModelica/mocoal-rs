@@ -10,25 +10,13 @@
 #![allow(non_snake_case)]
 
 // The public parts: the Rust API, its options, the program and the C interface.
-
-mod absyn;
-mod annotate;
 pub mod api;
 pub mod capi;
-mod cli;
-mod diagram;
-mod ends;
-mod extract;
-mod graphics;
-mod grid;
-mod layered;
-mod lookup;
-mod numbers;
 pub mod options;
-mod placement;
 pub mod program;
-mod resolve;
-mod routing;
-mod spring;
-mod svg;
-mod tokens;
+
+mod cli;
+mod layout;
+mod numbers;
+mod source;
+mod write;

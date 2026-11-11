@@ -14,7 +14,7 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 
 use crate::api::{VERSION, layout_file_in, write_text};
 use crate::cli::{CommandLine, USAGE_TEXT, modelica_files, parse_arguments, svg_file_name};
-use crate::lookup::{Library, file_path, is_dir, is_file, join_path};
+use crate::source::lookup::{Library, file_path, is_dir, is_file, join_path};
 
 fn say(s: &str) {
     eprintln!("{s}");

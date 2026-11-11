@@ -10,16 +10,16 @@
 
 use std::rc::Rc;
 
-use crate::annotate::{annotate_extent, annotate_links, annotate_nodes};
-use crate::extract::{class_selected, diagram_classes, extract_diagram};
-use crate::graphics::annotate_graphics;
-use crate::lookup::{Library, file_path, parse_text};
+use crate::layout::extract::{class_selected, diagram_classes, extract_diagram};
+use crate::layout::placement::place_diagram;
+use crate::layout::routing::route_diagram;
 use crate::options::Options;
-use crate::placement::place_diagram;
-use crate::resolve::register_program;
-use crate::routing::route_diagram;
-use crate::svg::svg_diagram;
-use crate::tokens::{Edit, Source, apply_edits};
+use crate::source::lookup::{Library, file_path, parse_text};
+use crate::source::resolve::register_program;
+use crate::source::tokens::{Edit, Source, apply_edits};
+use crate::write::annotate::{annotate_extent, annotate_links, annotate_nodes};
+use crate::write::graphics::annotate_graphics;
+use crate::write::svg::svg_diagram;
 
 /// The version of the implementation.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

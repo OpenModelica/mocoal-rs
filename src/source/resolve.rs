@@ -13,13 +13,13 @@ use std::rc::Rc;
 use metamodelica::Ref;
 use openmodelica_ast::Absyn;
 
-use crate::absyn::{
+use crate::layout::diagram::{ACAUSAL, INPUT, OUTPUT};
+use crate::source::absyn::{
     Args, NO_TRANSFORMATION, Transformation, class_annotation_args, comment_args, find_modifier, find_modifier_path,
     icon_line_color, modifier_args, modifier_bool, modifier_numbers, path_parts, read_transformation, rotate_point,
     type_path,
 };
-use crate::diagram::{ACAUSAL, INPUT, OUTPUT};
-use crate::lookup::{
+use crate::source::lookup::{
     ClassId, DEFAULT_ICON_SYSTEM, IconPlaces, IconSystem, Library, PortInfo, abs_path, dir_name, is_dir, is_file,
 };
 
@@ -690,7 +690,7 @@ pub fn register_program(lib: &mut Library, prog: &Absyn::Program, file: &str) ->
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lookup::parse_text;
+    use crate::source::lookup::parse_text;
 
     fn library(text: &str) -> (Library, Vec<ClassId>) {
         let mut lib = Library::new(&[]);

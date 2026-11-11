@@ -14,11 +14,14 @@ use crate::options::Options;
 use crate::source::lookup::{is_dir, is_file, join_path};
 
 pub const USAGE_TEXT: &str = "usage: mocoal [options] file.mo|directory ...
+       mocoal [options] --stdin file.mo
 
 Give the components of Modelica models a placement and the connections a line.
 One file without -o, -i or -n: the result is printed.
 
   -o, --output FILE      write the result to FILE (one input file)
+      --stdin FILE       read the text of FILE from the standard input (FILE need not
+                         exist; its place finds the libraries next to it)
   -i, --in-place         change the input files
   -n, --dry-run          report only, write nothing
   -c, --class NAME       lay out only this class or package (may be repeated)
@@ -43,6 +46,8 @@ pub struct CommandLine {
     pub opts: Options,
     pub inputs: Vec<String>,
     pub output: String,
+    /// With `--stdin`: the name of the file whose text is read from the standard input.
+    pub stdin: String,
     pub in_place: bool,
     pub dry_run: bool,
     pub quiet: bool,
@@ -57,6 +62,7 @@ impl CommandLine {
         let o = &mut self.opts;
         match name {
             "-o" | "--output" => self.output = value.to_owned(),
+            "--stdin" => self.stdin = value.to_owned(),
             "-c" | "--class" => o.classes.push(value.to_owned()),
             "-L" | "--library" => o.libraries.push(value.to_owned()),
             "--layout" => o.layout = value.to_owned(),
@@ -104,6 +110,7 @@ fn takes_value(name: &str) -> bool {
     matches!(
         name,
         "-o" | "--output"
+            | "--stdin"
             | "-c"
             | "--class"
             | "-L"
@@ -197,6 +204,7 @@ pub fn layout_text(text: &str, file_name: &str, options: &str) -> Result<(String
     let cl = parse_arguments(&split_arguments(options))?;
     if !cl.inputs.is_empty()
         || !cl.output.is_empty()
+        || !cl.stdin.is_empty()
         || cl.in_place
         || !cl.svg_dir.is_empty()
         || cl.dry_run
@@ -263,6 +271,11 @@ mod tests {
         );
         assert_eq!(cl.opts.classes, ["A", "B.C"]);
         assert_eq!(cl.inputs, ["x.mo", "-y.mo"]);
+        assert_eq!(
+            parse_arguments(&words("--stdin \"/a b/M.mo\"")).unwrap().stdin,
+            "/a b/M.mo"
+        );
+        assert!(layout_text("model M end M;", "M.mo", "--stdin M.mo").is_err());
         assert_eq!(
             parse_arguments(&words("--scale")).unwrap_err(),
             "--scale: a value is missing"

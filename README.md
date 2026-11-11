@@ -81,11 +81,14 @@ macOS arm64: `mocoal` 1.6 MB, `libmocoal.dylib` 1.5 MB, no other files needed at
 
 ```
 usage: mocoal [options] file.mo|directory ...
+       mocoal [options] --stdin file.mo
 
 Give the components of Modelica models a placement and the connections a line.
 One file without -o, -i or -n: the result is printed.
 
   -o, --output FILE      write the result to FILE (one input file)
+      --stdin FILE       read the text of FILE from the standard input (FILE need not
+                         exist; its place finds the libraries next to it)
   -i, --in-place         change the input files
   -n, --dry-run          report only, write nothing
   -c, --class NAME       lay out only this class or package (may be repeated)

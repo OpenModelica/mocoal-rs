@@ -13,5 +13,12 @@ fn main() -> ExitCode {
         .skip(1)
         .map(|a| a.to_string_lossy().into_owned())
         .collect();
-    ExitCode::from(mocoal::program::run(&args))
+    // Deep nesting in a model needs more stack than the main thread has.
+    match mocoal::stack::on_large_stack(|| mocoal::program::run(&args)) {
+        Ok(status) => ExitCode::from(status),
+        Err(_) => {
+            eprintln!("mocoal: internal error");
+            ExitCode::from(1)
+        }
+    }
 }

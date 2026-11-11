@@ -1,3 +1,8 @@
+// Written for the tests of mocoal-rs; not part of the Modelica Standard Library (MSL).
+// The class and connector names, the placements of the connectors and the triangle icon of
+// RealInput and RealOutput follow the MSL 4.1.0 (3-Clause BSD License, Copyright (c) 1998-2025,
+// Modelica Association and contributors; see LICENSE.md). The equations and the other icons are
+// simplified stand-ins.
 package Parts "Signal blocks, electrical and mechanical parts for the layout tests; no MSL"
   connector RealInput = input Real
     annotation(Icon(graphics = {Polygon(points = {{-100, 100}, {100, 0}, {-100, -100}, {-100, 100}},

@@ -15,7 +15,7 @@
 //! Julia; the tables below are read at `direction - 1`.
 //! Mirrors `src/routing.jl` of ModelicaComponentAutolayout.jl.
 
-use crate::diagram::{Diagram, Point, side_vector};
+use crate::diagram::{Diagram, Point, is_horizontal, side_vector};
 use crate::ends::{LinkEnds, link_ends, simple_route, simplify_path};
 use crate::grid::{
     Router, build_router, crossed, exit_point, foreign, heap_pop, heap_push, mark_use, net_number, reserve_exits,
@@ -33,6 +33,11 @@ const OVERLAP_COST: f32 = 40.0;
 const BLOCKED_COST: f32 = 150.0;
 const OWN_FACTOR: f32 = 0.75;
 const MAX_EXPANSIONS: usize = 200000;
+/// The grid step of the router, and the coarser one when the fine grid has too many points.
+const FINE_STEP: f64 = 5.0;
+const COARSE_STEP: f64 = 10.0;
+/// The most points a routing grid may have.
+const MAX_GRID_POINTS: usize = 500000;
 
 fn relax(r: &mut Router, s: usize, g: f32, from: usize, h: f32) {
     if r.stamp[s - 1] != r.search || g < r.cost[s - 1] {
@@ -113,7 +118,7 @@ pub fn find_path(
                 continue;
             }
             let (i2, j2) = (i2 as usize, j2 as usize);
-            let horizontal = dn <= 2;
+            let horizontal = is_horizontal(dn);
             let own = if horizontal { &r.own_y[j] } else { &r.own_x[i] };
             if !own.is_empty() && !own.contains(&net) {
                 continue;
@@ -188,9 +193,17 @@ pub fn route_link(r: &mut Router, d: &mut Diagram, e: &LinkEnds, li: usize, cell
     if sa == DIR_OPPOSITE[(sb - 1) as usize] {
         let dx = f64::from(DIR_X[(sa - 1) as usize]);
         let dy = f64::from(DIR_Y[(sa - 1) as usize]);
-        let ahead = if sa <= 2 { (b.0 - a.0) * dx } else { (b.1 - a.1) * dy };
-        let aside = if sa <= 2 { (b.1 - a.1).abs() } else { (b.0 - a.0).abs() };
-        let past = if sa <= 2 {
+        let ahead = if is_horizontal(sa) {
+            (b.0 - a.0) * dx
+        } else {
+            (b.1 - a.1) * dy
+        };
+        let aside = if is_horizontal(sa) {
+            (b.1 - a.1).abs()
+        } else {
+            (b.0 - a.0).abs()
+        };
+        let past = if is_horizontal(sa) {
             (r.x[ia] - r.x[ib]) * dx
         } else {
             (r.y[ja] - r.y[jb]) * dy
@@ -263,10 +276,8 @@ pub fn route_diagram(d: &mut Diagram, opts: &Options) {
         }
         return;
     }
-    let mut r = build_router(d, &e, 5.0, 500000);
-    if r.is_none() {
-        r = build_router(d, &e, 10.0, 500000);
-    }
+    let mut r =
+        build_router(d, &e, FINE_STEP, MAX_GRID_POINTS).or_else(|| build_router(d, &e, COARSE_STEP, MAX_GRID_POINTS));
     if let Some(r) = r.as_mut() {
         reserve_exits(r, d, &e);
     }
@@ -316,20 +327,7 @@ mod tests {
 
     /// The link from the output of node `a` to the input of node `b`.
     fn link(a: usize, b: usize) -> Link {
-        Link {
-            a,
-            pa: Some(1),
-            b,
-            pb: Some(0),
-            points: Vec::new(),
-            eq_tok: None,
-            semi_tok: None,
-            ann_tok: None,
-            has_line: false,
-            color: String::new(),
-            smooth: false,
-            keep: false,
-        }
+        Link::new(a, Some(1), b, Some(0))
     }
 
     fn chain() -> Diagram {
@@ -387,7 +385,7 @@ mod tests {
         );
 
         let e = link_ends(&d);
-        let mut r = build_router(&d, &e, 5.0, 500000).expect("a grid");
+        let mut r = build_router(&d, &e, FINE_STEP, MAX_GRID_POINTS).expect("a grid");
         let mut cells = Vec::new();
         let (i, j0) = exit_point(&r, &e, 0, &d.nodes[0]);
         let (it, j1) = exit_point(&r, &e, 1, &d.nodes[1]);

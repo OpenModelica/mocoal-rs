@@ -15,16 +15,21 @@ use crate::tokens::Segment;
 
 pub type Point = (f64, f64);
 
-/// The causality of a connector.
+// The causality of a connector.
 pub const ACAUSAL: i32 = 0;
 pub const INPUT: i32 = 1;
 pub const OUTPUT: i32 = 2;
 
-/// The sides of a node; 0 is none.
+// The sides of a node, and the directions of the router; 0 is none.
 pub const LEFT: i32 = 1;
 pub const RIGHT: i32 = 2;
 pub const BOTTOM: i32 = 3;
 pub const TOP: i32 = 4;
+
+/// Whether `side` is `LEFT` or `RIGHT`, where lines leave horizontally. True for none (0) too.
+pub fn is_horizontal(side: i32) -> bool {
+    side <= RIGHT
+}
 
 /// A connector of a node's class. `ix`, `iy` is its centre in the icon coordinates of that class.
 #[derive(Clone, Debug)]
@@ -93,6 +98,7 @@ pub struct Node {
 }
 
 impl Node {
+    /// A node `name` of the class `type_name`, `w` wide and `h` high, not placed yet.
     pub fn new(name: &str, type_name: &str, w: f64, h: f64) -> Node {
         Node {
             name: name.to_owned(),
@@ -153,6 +159,7 @@ impl Node {
         if self.turned() { self.h } else { self.w }
     }
 
+    /// The height of the node's extent, before the rotation.
     pub fn extent_height(&self) -> f64 {
         if self.turned() { self.w } else { self.h }
     }
@@ -307,11 +314,47 @@ pub struct Link {
     pub eq_tok: Option<usize>,
     pub semi_tok: Option<usize>,
     pub ann_tok: Option<usize>,
-    pub has_line: bool,
     pub color: String,
     pub smooth: bool,
     /// The existing Line is kept.
     pub keep: bool,
+}
+
+impl Link {
+    /// A link between port `pa` of node `a` and port `pb` of node `b`, with no line and no tokens.
+    pub fn new(a: usize, pa: Option<usize>, b: usize, pb: Option<usize>) -> Link {
+        Link {
+            a,
+            pa,
+            b,
+            pb,
+            points: Vec::new(),
+            eq_tok: None,
+            semi_tok: None,
+            ann_tok: None,
+            color: String::new(),
+            smooth: false,
+            keep: false,
+        }
+    }
+
+    /// End `which` (0 is `a`, 1 is `b`): its node and port.
+    pub fn end(&self, which: usize) -> (usize, Option<usize>) {
+        if which == 0 {
+            (self.a, self.pa)
+        } else {
+            (self.b, self.pb)
+        }
+    }
+
+    /// Seen from node `m`: the node at the other end, its port, and the port at `m`.
+    pub fn seen_from(&self, m: usize) -> (usize, Option<usize>, Option<usize>) {
+        if self.a == m {
+            (self.b, self.pb, self.pa)
+        } else {
+            (self.a, self.pa, self.pb)
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -334,6 +377,7 @@ pub struct Diagram {
 }
 
 impl Diagram {
+    /// An empty diagram of the class `name`.
     pub fn new(name: &str) -> Diagram {
         Diagram {
             class_name: name.to_owned(),

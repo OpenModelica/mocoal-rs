@@ -28,7 +28,14 @@ use crate::numbers::parse_float;
 use crate::options::Options;
 use crate::tokens::{Arg, Edit, Source};
 
+/// The space between a frame and the components it holds.
 const FRAME_MARGIN: f64 = 12.0;
+/// A rectangle at least this wide and high can be a frame.
+const MIN_FRAME_SIZE: f64 = 16.0;
+/// A rectangle or ellipse at most this wide and high is a junction marker.
+const MAX_MARKER_SIZE: f64 = 12.0;
+/// Points closer than this are the same.
+const SAME_POINT: f64 = 0.005;
 /// How far above a frame a text still counts as its title.
 const FRAME_TITLE: f64 = 25.0;
 
@@ -237,7 +244,7 @@ pub fn annotate_graphics(edits: &mut Vec<Edit>, src: &Source, d: &mut Diagram, o
             continue;
         }
         let b = shape_box(sh);
-        if !(b.2 - b.0 >= 16.0 && b.3 - b.1 >= 16.0) {
+        if !(b.2 - b.0 >= MIN_FRAME_SIZE && b.3 - b.1 >= MIN_FRAME_SIZE) {
             continue;
         }
         let members: Vec<usize> = nodes
@@ -324,10 +331,17 @@ pub fn annotate_graphics(edits: &mut Vec<Edit>, src: &Source, d: &mut Diagram, o
                         ny[q] += fdy;
                     }
                 }
-            } else if (sh.kind == "Rectangle" || sh.kind == "Ellipse") && b.2 - b.0 <= 12.0 && b.3 - b.1 <= 12.0 {
+            } else if (sh.kind == "Rectangle" || sh.kind == "Ellipse")
+                && b.2 - b.0 <= MAX_MARKER_SIZE
+                && b.3 - b.1 <= MAX_MARKER_SIZE
+            {
                 drop = true;
-            } else if sh.kind == "Rectangle" && sh.is_extent && b.2 - b.0 >= 16.0 && b.3 - b.1 >= 16.0 {
-                // A frame around nothing: moved with a component it would become another
+            } else if sh.kind == "Rectangle"
+                && sh.is_extent
+                && b.2 - b.0 >= MIN_FRAME_SIZE
+                && b.3 - b.1 >= MIN_FRAME_SIZE
+            {
+                // A frame around nothing: moved with the nearest component, it would look like that
                 // component's frame.
                 drop = true;
             } else {
@@ -355,7 +369,8 @@ pub fn annotate_graphics(edits: &mut Vec<Edit>, src: &Source, d: &mut Diagram, o
             continue;
         }
         // Only a change of the numbers counts: the rest of the text is as it was.
-        let same = (0..nx.len()).all(|q| (nx[q] - sh.xs[q]).abs() < 0.005 && (ny[q] - sh.ys[q]).abs() < 0.005);
+        let same =
+            (0..nx.len()).all(|q| (nx[q] - sh.xs[q]).abs() < SAME_POINT && (ny[q] - sh.ys[q]).abs() < SAME_POINT);
         if same {
             out.push(original.to_owned());
         } else {

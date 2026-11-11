@@ -13,7 +13,6 @@ builtins="FrontEnd/ModelicaBuiltin.mo FrontEnd/MetaModelicaBuiltin.mo FrontEnd/A
 FrontEnd/AnnotationsBuiltin_2_x.mo FrontEnd/AnnotationsBuiltin_3_x.mo NFFrontEnd/NFModelicaBuiltin.mo"
 url=${OPENMODELICA_URL:-https://github.com/OpenModelica/OpenModelica.git}
 
-rm -rf "$here/omc/OMCompiler"
 paths=""
 for c in $crates; do
   paths="$paths $base/$c"
@@ -34,6 +33,8 @@ else
   git -C "$src" checkout -q FETCH_HEAD
 fi
 
+# The old crates go only once the new ones are fetched.
+rm -rf "$here/omc/OMCompiler"
 # shellcheck disable=SC2086
 git -C "$src" archive "$commit" $paths | tar -x -C "$here/omc"
 rm -rf "$here/omc/$base/openmodelica_ast/tests"

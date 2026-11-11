@@ -46,11 +46,8 @@ pub struct LayoutResult {
     pub classes: Vec<ClassReport>,
     /// What the layout had to do without.
     pub warnings: Vec<String>,
-    /// Why there is no layout, or "".
-    pub error: String,
-    /// The class names and the SVG previews (with `Options::svg`).
-    pub svg_names: Vec<String>,
-    pub svgs: Vec<String>,
+    /// Per class: its name and its SVG preview (with `Options::svg`).
+    pub svgs: Vec<(String, String)>,
 }
 
 impl LayoutResult {
@@ -60,32 +57,21 @@ impl LayoutResult {
             changed: false,
             classes: Vec::new(),
             warnings: Vec::new(),
-            error: String::new(),
-            svg_names: Vec::new(),
             svgs: Vec::new(),
         }
-    }
-
-    fn failed(text: &str, error: String) -> LayoutResult {
-        let mut res = LayoutResult::new(text);
-        res.error = error;
-        res
     }
 }
 
 /// `layout_string` with a library that is shared between the files of a run.
-pub fn layout_string_in(text: &str, file_name: &str, opts: &Options, lib: &mut Library) -> LayoutResult {
-    if let Err(msg) = opts.check() {
-        return LayoutResult::failed(text, msg);
-    }
-    let prog = match parse_text(text, file_name) {
-        Ok(p) => p,
-        Err(msg) => return LayoutResult::failed(text, msg),
-    };
-    let src = match Source::new(text, file_name) {
-        Ok(s) => Rc::new(s),
-        Err(msg) => return LayoutResult::failed(text, msg),
-    };
+pub(crate) fn layout_string_in(
+    text: &str,
+    file_name: &str,
+    opts: &Options,
+    lib: &mut Library,
+) -> Result<LayoutResult, String> {
+    opts.check()?;
+    let prog = parse_text(text, file_name)?;
+    let src = Rc::new(Source::new(text, file_name)?);
     let mut res = LayoutResult::new(text);
     let known = lib.warnings.len();
     let refs = register_program(lib, &prog, file_name);
@@ -125,8 +111,7 @@ pub fn layout_string_in(text: &str, file_name: &str, opts: &Options, lib: &mut L
                 routed,
             });
             if opts.svg {
-                res.svg_names.push(name);
-                res.svgs.push(svg_diagram(&d));
+                res.svgs.push((name, svg_diagram(&d)));
             }
         }
     }
@@ -143,21 +128,19 @@ pub fn layout_string_in(text: &str, file_name: &str, opts: &Options, lib: &mut L
         ));
     }
     if out == text {
-        return res;
+        return Ok(res);
     }
-    if let Err(msg) = parse_text(&out, file_name) {
-        res.error = format!("internal error, the result does not parse ({msg}); nothing is changed");
-        return res;
-    }
+    parse_text(&out, file_name)
+        .map_err(|msg| format!("internal error, the result does not parse ({msg}); nothing is changed"))?;
     res.text = out;
     res.changed = true;
-    res
+    Ok(res)
 }
 
 /// Lay out the diagrams of the classes in the Modelica source `text`. `file_name` is the file
 /// the text comes from ("" for none): with a `within` clause it tells where the enclosing
-/// package is on disk.
-pub fn layout_string(text: &str, file_name: &str, opts: &Options) -> LayoutResult {
+/// package is on disk. The error says why there is no layout.
+pub fn layout_string(text: &str, file_name: &str, opts: &Options) -> Result<LayoutResult, String> {
     layout_string_in(text, file_name, opts, &mut Library::new(&opts.libraries))
 }
 
@@ -167,22 +150,20 @@ pub fn read_source(path: &str) -> Result<String, String> {
     String::from_utf8(bytes).map_err(|_| format!("{path}: not UTF-8"))
 }
 
-/// Write `text` to the file `path`. False when that fails.
-pub fn write_text(path: &str, text: &str) -> bool {
-    std::fs::write(path, text).is_ok()
+/// Write `text` to the file `path`.
+pub fn write_text(path: &str, text: &str) -> std::io::Result<()> {
+    std::fs::write(path, text)
 }
 
 /// `layout_file` with a library that is shared between the files of a run.
-pub fn layout_file_in(path: &str, opts: &Options, lib: &mut Library) -> LayoutResult {
-    match read_source(path) {
-        Ok(text) => layout_string_in(&text, path, opts, lib),
-        Err(msg) => LayoutResult::failed("", msg),
-    }
+pub(crate) fn layout_file_in(path: &str, opts: &Options, lib: &mut Library) -> Result<LayoutResult, String> {
+    let text = read_source(path)?;
+    layout_string_in(&text, path, opts, lib)
 }
 
 /// Lay out the diagrams of the classes in the file `path`. The file is not changed: write the
-/// `text` of the result where it should go.
-pub fn layout_file(path: &str, opts: &Options) -> LayoutResult {
+/// `text` of the result where it should go. The error says why there is no layout.
+pub fn layout_file(path: &str, opts: &Options) -> Result<LayoutResult, String> {
     layout_file_in(path, opts, &mut Library::new(&opts.libraries))
 }
 
@@ -205,37 +186,34 @@ end Chain;
 
     #[test]
     fn layout_of_a_chain() {
-        let res = layout_string(CHAIN, "", &Options::default());
-        assert_eq!(res.error, "");
+        let res = layout_string(CHAIN, "", &Options::default()).unwrap();
         assert!(res.changed);
         assert_eq!(res.text.matches("Placement(transformation(origin=").count(), 3);
         assert_eq!(res.text.matches("Line(points=").count(), 2);
         assert_eq!(res.classes.len(), 1);
         assert_eq!((res.classes[0].placed, res.classes[0].routed), (3, 2));
         // The second layout changes nothing.
-        let again = layout_string(&res.text, "", &Options::default());
-        assert_eq!(again.error, "");
+        let again = layout_string(&res.text, "", &Options::default()).unwrap();
         assert_eq!(again.text, res.text);
         // Existing placements are kept with `keep`.
         let keep = Options {
             keep: true,
             ..Options::default()
         };
-        assert!(!layout_string(&res.text, "", &keep).changed);
+        assert!(!layout_string(&res.text, "", &keep).unwrap().changed);
     }
 
     #[test]
     fn no_layout() {
-        let res = layout_string("model M Real x; end N;", "M.mo", &Options::default());
-        assert!(res.error.starts_with("M.mo:"), "{}", res.error);
-        assert!(!res.changed);
-        let none = layout_string("", "", &Options::default());
-        assert_eq!((none.error.as_str(), none.changed, none.text.as_str()), ("", false, ""));
+        let error = layout_string("model M Real x; end N;", "M.mo", &Options::default()).unwrap_err();
+        assert!(error.starts_with("M.mo:"), "{error}");
+        let none = layout_string("", "", &Options::default()).unwrap();
+        assert_eq!((none.changed, none.text.as_str()), (false, ""));
         let other = Options {
             classes: vec!["Other".to_owned()],
             ..Options::default()
         };
-        let res = layout_string(CHAIN, "Chain.mo", &other);
+        let res = layout_string(CHAIN, "Chain.mo", &other).unwrap();
         assert_eq!(res.warnings, ["Chain.mo: no class matches Other"]);
     }
 }

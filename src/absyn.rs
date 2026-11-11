@@ -57,8 +57,8 @@ pub fn type_path(t: &Absyn::TypeSpec) -> &Absyn::Path {
 }
 
 /// The arguments of the annotation of an optional comment.
-pub fn comment_args(c: &Option<Ref<Absyn::Comment>>) -> Args {
-    match c.as_ref().and_then(|c| c.annotation_.as_ref()) {
+pub fn comment_args(c: Option<&Ref<Absyn::Comment>>) -> Args {
+    match c.and_then(|c| c.annotation_.as_ref()) {
         Some(a) => list_vector(&a.elementArgs),
         None => Vec::new(),
     }
@@ -73,7 +73,7 @@ pub fn class_annotation_args(cls: &Absyn::Class) -> Args {
                 out.extend(a.elementArgs.iter().cloned());
             }
         }
-        Absyn::DERIVED { comment, .. } | Absyn::ENUMERATION { comment, .. } => out = comment_args(comment),
+        Absyn::DERIVED { comment, .. } | Absyn::ENUMERATION { comment, .. } => out = comment_args(comment.as_ref()),
         _ => {}
     }
     out
@@ -108,18 +108,11 @@ pub fn modifier_exp(m: &Absyn::ElementArg) -> Option<Ref<Absyn::Exp>> {
     None
 }
 
-/// The positions of a modification in the source, zeros for another argument.
-pub fn modifier_position(m: &Absyn::ElementArg) -> (i32, i32, i32, i32) {
-    match m {
-        Absyn::MODIFICATION { info, .. } => info_position(info),
-        _ => (0, 0, 0, 0),
-    }
-}
-
 /// The modifier at `path` below the arguments.
 pub fn find_modifier_path(args: &[Ref<Absyn::ElementArg>], path: &[&str]) -> Option<Ref<Absyn::ElementArg>> {
-    let mut found = find_modifier(args, path.first()?)?;
-    for name in &path[1..] {
+    let (first, rest) = path.split_first()?;
+    let mut found = find_modifier(args, first)?;
+    for name in rest {
         found = find_modifier(&modifier_args(&found), name)?;
     }
     Some(found)

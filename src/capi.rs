@@ -42,9 +42,11 @@ unsafe fn c_text<'a>(p: *const c_char) -> Result<&'a str, String> {
     s.to_str().map_err(|_| "the text is not UTF-8".to_owned())
 }
 
+const INTERNAL_ERROR: &str = "internal error, no layout";
+
 fn layout(text: &str, file_name: &str, options: &str) -> Result<(CString, String), String> {
     let (out, warnings) = layout_text(text, file_name, options)?;
-    let out = CString::new(out).map_err(|_| "internal error, no layout".to_owned())?;
+    let out = CString::new(out).map_err(|_| INTERNAL_ERROR.to_owned())?;
     Ok((out, warnings))
 }
 
@@ -65,8 +67,7 @@ pub unsafe extern "C" fn mocoal_layout(
     let result = match args {
         (Ok(text), Ok(file_name), Ok(options)) => {
             // No panic may cross the interface.
-            catch_unwind(|| layout(text, file_name, options))
-                .unwrap_or_else(|_| Err("internal error, no layout".to_owned()))
+            catch_unwind(|| layout(text, file_name, options)).unwrap_or_else(|_| Err(INTERNAL_ERROR.to_owned()))
         }
         (Err(e), _, _) | (_, Err(e), _) | (_, _, Err(e)) => Err(e),
     };

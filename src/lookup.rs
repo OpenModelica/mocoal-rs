@@ -65,6 +65,15 @@ pub struct IconSystem {
     pub initial_scale: f64,
 }
 
+impl IconSystem {
+    /// The default size of a component of a class with this icon system: (width, height).
+    pub fn default_size(&self, scale: f64) -> (f64, f64) {
+        let w = (self.x2 - self.x1).abs() * self.initial_scale * scale;
+        let h = (self.y2 - self.y1).abs() * self.initial_scale * scale;
+        (w.max(2.0), h.max(2.0))
+    }
+}
+
 pub const DEFAULT_ICON_SYSTEM: IconSystem = IconSystem {
     found: false,
     x1: -100.0,
@@ -183,32 +192,21 @@ pub fn parse_text(text: &str, file_name: &str) -> Result<Absyn::Program, String>
 /// The leading numbers of a version string: `4.1.0+maint.om` gives [4, 1, 0].
 pub fn version_numbers(s: &str) -> Vec<i64> {
     let mut v = Vec::new();
-    let mut cur: i64 = -1;
+    let mut cur: Option<i64> = None;
     for ch in s.chars() {
-        if let Some(d) = ch.to_digit(10).filter(|_| ch.is_ascii_digit()) {
-            cur = (if cur < 0 { 0 } else { cur })
-                .wrapping_mul(10)
-                .wrapping_add(i64::from(d));
-        } else if ch == '.' && cur >= 0 {
-            v.push(cur);
-            cur = -1;
+        if let Some(d) = ch.to_digit(10) {
+            cur = Some(cur.unwrap_or(0).wrapping_mul(10).wrapping_add(i64::from(d)));
+        } else if ch == '.'
+            && let Some(n) = cur
+        {
+            v.push(n);
+            cur = None;
         } else {
             break;
         }
     }
-    if cur >= 0 {
-        v.push(cur);
-    }
+    v.extend(cur);
     v
-}
-
-pub fn version_less(a: &[i64], b: &[i64]) -> bool {
-    for (x, y) in a.iter().zip(b) {
-        if x != y {
-            return x < y;
-        }
-    }
-    a.len() < b.len()
 }
 
 fn collect_elements(out: &mut Vec<Ref<Absyn::Element>>, parts: &metamodelica::List<Ref<Absyn::ClassPart>>) {
@@ -361,7 +359,7 @@ impl Library {
                         break;
                     }
                     let vn = version_numbers(ver);
-                    if best.is_empty() || version_less(&best_v, &vn) {
+                    if best.is_empty() || best_v < vn {
                         best_v = vn;
                         best = e;
                     }
@@ -467,9 +465,9 @@ mod tests {
         assert_eq!(version_numbers("4.1.0+maint.om"), vec![4, 1, 0]);
         assert_eq!(version_numbers("3.2.3"), vec![3, 2, 3]);
         assert_eq!(version_numbers("trunk"), Vec::<i64>::new());
-        assert!(version_less(&[3, 2, 3], &[4, 0]));
-        assert!(version_less(&[4], &[4, 1]));
-        assert!(!version_less(&[4, 1], &[4, 1]));
+        // Versions compare as slices: number by number, a prefix first.
+        assert!([3, 2, 3][..] < [4, 0][..]);
+        assert!([4][..] < [4, 1][..]);
     }
 
     #[test]

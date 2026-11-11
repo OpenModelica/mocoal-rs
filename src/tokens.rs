@@ -19,7 +19,6 @@ pub use openmodelica_ast::parser::lexer::TokenKind;
 /// A source file: its text and its tokens, each with its byte range in the text.
 pub struct Source {
     pub text: String,
-    pub file_name: String,
     kinds: Vec<TokenKind>,
     /// Line and character column of the first character, both 1-based, as the parser records them.
     positions: Vec<(u32, u32)>,
@@ -34,16 +33,27 @@ pub struct Edit {
     pub text: String,
 }
 
-/// One declaration of a component clause (`T a, b;` has two): the tokens `first` to `delim - 1`.
-/// `delim` is the `,` or `;` that ends it. `ann_tok` is the `annotation` token of its comment and
-/// `cc_ann_tok` the one of a constraining clause.
+/// One declaration of a component clause (`T a, b;` has two). `delim` is the `,` or `;` that ends
+/// it. `ann_tok` is the `annotation` token of its comment, `cc_tok` the `constrainedby` token and
+/// `cc_ann_tok` the `annotation` token of the constraining clause.
 #[derive(Clone, Copy, Debug)]
 pub struct Segment {
-    pub first: usize,
     pub delim: usize,
     pub ann_tok: Option<usize>,
     pub cc_tok: Option<usize>,
     pub cc_ann_tok: Option<usize>,
+}
+
+impl Segment {
+    /// A segment that ends at `delim`, with no annotation or constraining clause yet.
+    fn ending_at(delim: usize) -> Segment {
+        Segment {
+            delim,
+            ann_tok: None,
+            cc_tok: None,
+            cc_ann_tok: None,
+        }
+    }
 }
 
 /// An argument of a modification list: its name and its tokens `first..=last`.
@@ -126,7 +136,6 @@ impl Source {
         let tokens = lexer::lex(text, Grammar::Modelica3).map_err(|e| e.to_string())?;
         let mut src = Source {
             text: text.to_owned(),
-            file_name: file_name.to_owned(),
             kinds: Vec::with_capacity(tokens.len()),
             positions: Vec::with_capacity(tokens.len()),
             starts: Vec::with_capacity(tokens.len()),
@@ -213,12 +222,6 @@ impl Source {
         self.positions.partition_point(|p| *p <= at).checked_sub(1)
     }
 
-    /// The token at the end position of a `SourceInfo`: the token after the construct. The parser
-    /// records a column that is one less on the first line (as ANTLR did).
-    pub fn token_at_end(&self, line: i32, column: i32) -> Option<usize> {
-        self.token_at(line, if line == 1 { column + 1 } else { column })
-    }
-
     /// The token that closes the bracket opened by token `i`.
     pub fn match_close(&self, i: usize) -> Option<usize> {
         let mut depth: i32 = 0;
@@ -239,13 +242,7 @@ impl Source {
     pub fn element_segments(&self, s: usize) -> Vec<Segment> {
         let mut segs: Vec<Segment> = Vec::new();
         let mut depth: i32 = 0;
-        let mut seg = Segment {
-            first: s,
-            delim: s,
-            ann_tok: None,
-            cc_tok: None,
-            cc_ann_tok: None,
-        };
+        let mut seg = Segment::ending_at(s);
         for j in s..self.kinds.len() {
             let k = &self.kinds[j];
             if is_open(k) {
@@ -256,13 +253,7 @@ impl Source {
                 match k {
                     TokenKind::Comma => {
                         segs.push(Segment { delim: j, ..seg });
-                        seg = Segment {
-                            first: j + 1,
-                            delim: j + 1,
-                            ann_tok: None,
-                            cc_tok: None,
-                            cc_ann_tok: None,
-                        };
+                        seg = Segment::ending_at(j + 1);
                     }
                     TokenKind::Semi => {
                         segs.push(Segment { delim: j, ..seg });

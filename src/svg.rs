@@ -19,6 +19,7 @@ pub fn svg_color(c: &str, default: &str) -> String {
     format!("rgb({})", &c[1..c.len() - 1])
 }
 
+/// `s` with `&`, `<` and `>` escaped, for the text of an SVG element.
 pub fn svg_escape(s: &str) -> String {
     s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
 }
@@ -114,7 +115,7 @@ pub fn svg_diagram(d: &Diagram) -> String {
         io += &format!(
             "<text x=\"{}\" y=\"{}\" font-size=\"11\" text-anchor=\"middle\" fill=\"#222222\">{}</text>\n",
             px(node.x),
-            format_number((y2 - node.y - node.h / 2.0) * f - 4.0),
+            n((y2 - node.y - node.h / 2.0) * f - 4.0),
             svg_escape(&node.name)
         );
     }
@@ -129,18 +130,10 @@ mod tests {
 
     fn link(points: Vec<(f64, f64)>, color: &str, smooth: bool) -> Link {
         Link {
-            a: 0,
-            pa: None,
-            b: 0,
-            pb: None,
             points,
-            eq_tok: None,
-            semi_tok: None,
-            ann_tok: None,
-            has_line: false,
             color: color.to_owned(),
             smooth,
-            keep: false,
+            ..Link::new(0, None, 0, None)
         }
     }
 

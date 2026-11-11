@@ -20,3 +20,6 @@ mod layout;
 mod numbers;
 mod source;
 mod write;
+
+#[cfg(test)]
+mod tests;

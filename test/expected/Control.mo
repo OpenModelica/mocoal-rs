@@ -1,0 +1,34 @@
+model Control "Cascade control: an outer PI loop, an inner P loop, a disturbance"
+  Parts.Sine reference(f = 0.1) annotation(Placement(transformation(origin={-250,18}, extent={{-10,-10},{10,10}})));
+  Parts.Feedback outerError annotation(Placement(transformation(origin={-200,18}, extent={{-10,-10},{10,10}})));
+  Parts.Gain kp(k = 4) annotation(Placement(transformation(origin={-150,38}, extent={{-10,-10},{10,10}})));
+  Parts.Integrator ki(k = 0.5) annotation(Placement(transformation(origin={-150,-2}, extent={{-10,-10},{10,10}})));
+  Parts.Add pi annotation(Placement(transformation(origin={-100,4}, extent={{-10,-10},{10,10}})));
+  Parts.Feedback innerError annotation(Placement(transformation(origin={-50,4}, extent={{-10,-10},{10,10}})));
+  Parts.Gain kInner(k = 10) annotation(Placement(transformation(origin={0,6}, extent={{-10,-10},{10,10}})));
+  Parts.FirstOrder actuator(T = 0.05) annotation(Placement(transformation(origin={50,10}, extent={{-10,-10},{10,10}})));
+  Parts.Constant disturbance(k = -0.2) annotation(Placement(transformation(origin={50,-30}, extent={{-10,-10},{10,10}})));
+  Parts.Add load annotation(Placement(transformation(origin={100,-22}, extent={{-10,-10},{10,10}})));
+  Parts.FirstOrder plant(T = 2) annotation(Placement(transformation(origin={150,-22}, extent={{-10,-10},{10,10}})));
+  Parts.Integrator position annotation(Placement(transformation(origin={200,22}, extent={{-10,-10},{10,10}})));
+  Parts.Gain speedSensor annotation(Placement(transformation(origin={200,-18}, extent={{-10,-10},{10,10}})));
+  Parts.Gain positionSensor annotation(Placement(transformation(origin={250,22}, extent={{-10,-10},{10,10}})));
+equation
+  connect(reference.y, outerError.u1) annotation(Line(points={{-239,18},{-208,18}}, color={0,0,127}));
+  connect(outerError.y, kp.u) annotation(Line(points={{-191,18},{-170,18},{-170,38},{-162,38}}, color={0,0,127}));
+  connect(outerError.y, ki.u) annotation(Line(points={{-191,18},{-170,18},{-170,-2},{-162,-2}}, color={0,0,127}));
+  connect(kp.y, pi.u1) annotation(Line(points={{-139,38},{-120,38},{-120,10},{-112,10}}, color={0,0,127}));
+  connect(ki.y, pi.u2) annotation(Line(points={{-139,-2},{-112,-2}}, color={0,0,127}));
+  connect(pi.y, innerError.u1) annotation(Line(points={{-89,4},{-58,4}}, color={0,0,127}));
+  connect(innerError.y, kInner.u) annotation(Line(points={{-41,4},{-20,4},{-20,6},{-12,6}}, color={0,0,127}));
+  connect(kInner.y, actuator.u) annotation(Line(points={{11,6},{30,6},{30,10},{38,10}}, color={0,0,127}));
+  connect(actuator.y, load.u1) annotation(Line(points={{61,10},{80,10},{80,-16},{88,-16}}, color={0,0,127}));
+  connect(disturbance.y, load.u2) annotation(Line(points={{61,-30},{80,-30},{80,-28},{88,-28}}, color={0,0,127}));
+  connect(load.y, plant.u) annotation(Line(points={{111,-22},{138,-22}}, color={0,0,127}));
+  connect(plant.y, position.u) annotation(Line(points={{161,-22},{180,-22},{180,22},{188,22}}, color={0,0,127}));
+  connect(plant.y, speedSensor.u) annotation(Line(points={{161,-22},{180,-22},{180,-18},{188,-18}}, color={0,0,127}));
+  connect(speedSensor.y, innerError.u2) annotation(Line(points={{211,-18},{220,-18},{220,-45},{-50,-45},{-50,-4}}, color={0,0,127}));
+  connect(position.y, positionSensor.u) annotation(Line(points={{211,22},{238,22}}, color={0,0,127}));
+  connect(positionSensor.y, outerError.u2) annotation(Line(points={{261,22},{270,22},{270,-50},{-200,-50},{-200,10}}, color={0,0,127}));
+  annotation(Diagram(coordinateSystem(extent={{-280,-100},{300,100}})));
+end Control;

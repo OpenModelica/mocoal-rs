@@ -1,0 +1,34 @@
+model DriveTrain "Speed control of three inertias coupled by springs, with dampers to a fixed housing"
+  Parts.Sine reference(f = 0.5) annotation(Placement(transformation(origin={-250,2}, extent={{-10,-10},{10,10}})));
+  Parts.Feedback error annotation(Placement(transformation(origin={-200,-26}, extent={{-10,-10},{10,10}})));
+  Parts.Gain controller(k = 20) annotation(Placement(transformation(origin={-150,-26}, extent={{-10,-10},{10,10}})));
+  Parts.Torque motor annotation(Placement(transformation(origin={-100,-26}, extent={{-10,-10},{10,10}})));
+  Parts.Inertia rotor(J = 0.1) annotation(Placement(transformation(origin={-50,-26}, extent={{-10,-10},{10,10}})));
+  Parts.Spring shaft1(c = 1000) annotation(Placement(transformation(origin={0,14}, extent={{-10,-10},{10,10}})));
+  Parts.Inertia gear(J = 0.5) annotation(Placement(transformation(origin={50,14}, extent={{-10,-10},{10,10}})));
+  Parts.Spring shaft2(c = 500) annotation(Placement(transformation(origin={100,34}, extent={{-10,-10},{10,10}})));
+  Parts.Inertia load(J = 2) annotation(Placement(transformation(origin={150,0}, extent={{-10,-10},{10,10}}, rotation=270)));
+  Parts.Damper bearing1(d = 0.1) annotation(Placement(transformation(origin={0,-26}, extent={{-10,-10},{10,10}})));
+  Parts.Damper bearing2(d = 0.2) annotation(Placement(transformation(origin={100,-6}, extent={{-10,-10},{10,10}})));
+  Parts.Damper friction(d = 1) annotation(Placement(transformation(origin={200,-10}, extent={{-10,-10},{10,10}})));
+  Parts.Fixed housing annotation(Placement(transformation(origin={250,-20}, extent={{-10,-10},{10,10}})));
+  Parts.SpeedSensor speed annotation(Placement(transformation(origin={-250,-38}, extent={{-10,-10},{10,10}})));
+equation
+  connect(reference.y, error.u1) annotation(Line(points={{-239,2},{-215,2},{-215,-26},{-208,-26}}, color={0,0,127}));
+  connect(error.y, controller.u) annotation(Line(points={{-191,-26},{-162,-26}}, color={0,0,127}));
+  connect(controller.y, motor.tau) annotation(Line(points={{-139,-26},{-112,-26}}, color={0,0,127}));
+  connect(motor.flange, rotor.flange_a) annotation(Line(points={{-90,-26},{-60,-26}}, color={64,64,64}));
+  connect(rotor.flange_b, shaft1.flange_a) annotation(Line(points={{-40,-26},{-15,-26},{-15,14},{-10,14}}, color={64,64,64}));
+  connect(shaft1.flange_b, gear.flange_a) annotation(Line(points={{10,14},{40,14}}, color={64,64,64}));
+  connect(gear.flange_b, shaft2.flange_a) annotation(Line(points={{60,14},{85,14},{85,34},{90,34}}, color={64,64,64}));
+  connect(shaft2.flange_b, load.flange_a) annotation(Line(points={{110,34},{150,34},{150,10}}, color={64,64,64}));
+  connect(rotor.flange_b, bearing1.flange_a) annotation(Line(points={{-40,-26},{-10,-26}}, color={64,64,64}));
+  connect(gear.flange_b, bearing2.flange_a) annotation(Line(points={{60,14},{85,14},{85,-6},{90,-6}}, color={64,64,64}));
+  connect(load.flange_b, friction.flange_a) annotation(Line(points={{150,-10},{150,-15},{185,-15},{185,-10},{190,-10}}, color={64,64,64}));
+  connect(bearing1.flange_b, housing.flange) annotation(Line(points={{10,-26},{235,-26},{235,5},{250,5},{250,-10}}, color={64,64,64}));
+  connect(bearing2.flange_b, housing.flange) annotation(Line(points={{110,-6},{135,-6},{135,25},{250,25},{250,-10}}, color={64,64,64}));
+  connect(friction.flange_b, housing.flange) annotation(Line(points={{210,-10},{235,-10},{235,5},{250,5},{250,-10}}, color={64,64,64}));
+  connect(load.flange_b, speed.flange) annotation(Line(points={{150,-10},{150,-55},{-265,-55},{-265,-38},{-260,-38}}, color={64,64,64}));
+  connect(speed.w, error.u2) annotation(Line(points={{-239,-38},{-215,-38},{-215,-45},{-200,-45},{-200,-34}}, color={0,0,127}));
+  annotation(Diagram(coordinateSystem(extent={{-300,-100},{280,100}})));
+end DriveTrain;

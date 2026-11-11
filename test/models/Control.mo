@@ -1,0 +1,33 @@
+model Control "Cascade control: an outer PI loop, an inner P loop, a disturbance"
+  Parts.Sine reference(f = 0.1);
+  Parts.Feedback outerError;
+  Parts.Gain kp(k = 4);
+  Parts.Integrator ki(k = 0.5);
+  Parts.Add pi;
+  Parts.Feedback innerError;
+  Parts.Gain kInner(k = 10);
+  Parts.FirstOrder actuator(T = 0.05);
+  Parts.Constant disturbance(k = -0.2);
+  Parts.Add load;
+  Parts.FirstOrder plant(T = 2);
+  Parts.Integrator position;
+  Parts.Gain speedSensor;
+  Parts.Gain positionSensor;
+equation
+  connect(reference.y, outerError.u1);
+  connect(outerError.y, kp.u);
+  connect(outerError.y, ki.u);
+  connect(kp.y, pi.u1);
+  connect(ki.y, pi.u2);
+  connect(pi.y, innerError.u1);
+  connect(innerError.y, kInner.u);
+  connect(kInner.y, actuator.u);
+  connect(actuator.y, load.u1);
+  connect(disturbance.y, load.u2);
+  connect(load.y, plant.u);
+  connect(plant.y, position.u);
+  connect(plant.y, speedSensor.u);
+  connect(speedSensor.y, innerError.u2);
+  connect(position.y, positionSensor.u);
+  connect(positionSensor.y, outerError.u2);
+end Control;

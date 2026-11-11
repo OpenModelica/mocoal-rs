@@ -3,9 +3,8 @@
 Interface version 1.
 
 This is what a program that loads the library (OMEdit) may rely on, and what an implementation
-of the library has to do. There are two: Julia (ModelicaComponentAutolayout.jl, where this file
-is kept) and Rust (mocoal-rs, which has a copy of it). Nothing below depends on the
-implementation, except the section [This implementation](#this-implementation).
+of the library has to do. Nothing below depends on the implementation, except the section
+[This implementation](#this-implementation).
 
 ## Functions
 
@@ -151,42 +150,32 @@ Modifiers and redeclarations are not applied in the lookup.
 
 ## This implementation
 
-Not part of the interface; what a caller of the Julia implementation has to know. For the Rust
-implementation: the README of mocoal-rs.
+Not part of the interface; what a caller of this implementation (Rust) has to know.
 
-- `libmocoal.{so,dylib,dll}` is in a directory that JuliaC writes, with the Julia runtime
-  libraries it needs (`lib/` and `lib/julia/`, 43 MB on macOS arm64). The library finds the
-  runtime relative to itself (`@rpath`): the directory moves as a whole.
-- The Julia runtime starts when the library is loaded and cannot be unloaded. OMEdit loads the
-  library at the first layout and keeps it until it exits.
-- Calls were made from the main thread of the caller only.
-- Time: Modelica Standard Library 4.1.0, 2552 files, 1.5 s for all of them with the program
-  `mocoal`.
+- `libmocoal.{so,dylib}`, `mocoal.dll` on Windows: one file, 1.5 MB on macOS arm64, no other
+  libraries than the system's. On macOS its install name is `@rpath/libmocoal.dylib`.
+- It also exports 3 symbols of the parser crates (`omrs_add_runtime_error`,
+  `omrs_add_runtime_error_pos`, `omrs_runtime_abort`). They are not part of the interface.
+- A panic inside `mocoal_layout` is caught: the result is `NULL`, the message
+  `internal error, no layout`.
+- Time: Modelica Standard Library 4.1.0, 2552 files, 1.1 to 1.5 s for all of them with the
+  program `mocoal`.
 - Licence: AGPL v3 or OSMC-PL 1.8, according to the recipient's choice.
 
 ## Test
 
-[juliac/test_lib.c](juliac/test_lib.c) is a C program that uses only the four functions. It
-checks: a layout with the defaults, a second layout of the result, options, a parse error, an
-unknown value, 9 words that are refused, a text without classes, words in double quotes, and a
-class that is not there.
+[test_lib.c](test_lib.c) is a C program that uses only the four functions. It checks: a layout
+with the defaults, a second layout of the result, options, a parse error, an unknown value, 9
+words that are refused, a text without classes, words in double quotes, and a class that is not
+there.
 
 ```bash
-juliac/check.sh lib
+scripts/check.sh lib
 ```
 
-Another implementation:
+Another build of the library: `CARGO_TARGET=<directory of the library> scripts/check.sh lib`.
 
-```bash
-MOCOAL_LIB=/path/to/libmocoal.so juliac/check.sh lib
-```
-
-mocoal-rs has copies of this file and of `juliac/test_lib.c` in its directory `interface/`.
-`scripts/check.sh sync` there fails when a copy differs from the file here: a change of the
-interface goes into both repositories.
-
-The test set `interface` in [test/runtests.jl](test/runtests.jl) checks the same rules, and the
-points 2, 4 and 5 of [What a result is](#what-a-result-is), in Julia.
+The test `interface` in `src/capi.rs` checks the same rules from Rust.
 
 ## Open points
 

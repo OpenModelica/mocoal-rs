@@ -191,12 +191,10 @@ cargo fmt -p mocoal -- --check
 cargo clippy -p mocoal --all-targets --no-deps -- -D warnings
 ```
 
-55 tests. `check.sh [exe|lib|sync|all]` runs the program on
+55 tests. `check.sh [exe|lib|all]` runs the program on
 [test/models/Chain.mo](test/models/Chain.mo) and compiles and runs `interface/test_lib.c`
-against the library. `interface/` and `examples/` are copies of a reference checkout;
-`check.sh sync` fails when they differ (`MOCOAL_JL` names the checkout). `cargo fmt` and
-`cargo clippy` need `-p mocoal` (and clippy `--no-deps`): without it they work on the fetched
-crates too.
+against the library. `cargo fmt` and `cargo clippy` need `-p mocoal` (and clippy `--no-deps`):
+without it they work on the fetched crates too.
 
 `scripts/compare.sh MOCOAL_A MOCOAL_B LIBRARY_DIR WORK_DIR [options]` lays out a copy of a
 library with two programs and compares the files, the SVG previews and the reports.
@@ -205,8 +203,7 @@ Modelica Standard Library 4.1.0, `mocoal -i Modelica`, macOS arm64: 2552 files i
 975 changed, 0 failed; 1182 classes, 8792 components placed, 9622 connections routed. A second
 run changes 0 files.
 
-The workflow [.github/workflows/build.yml](.github/workflows/build.yml) runs the checks (without
-`sync`), builds both forms and uploads them as artifacts: Linux x86_64 on a push or pull
+The workflow [.github/workflows/build.yml](.github/workflows/build.yml) runs the checks, builds both forms and uploads them as artifacts: Linux x86_64 on a push or pull
 request; Linux, macOS arm64 and Windows x86_64 on a run by hand (Actions > Build > Run
 workflow).
 

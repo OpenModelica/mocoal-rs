@@ -1,13 +1,11 @@
 #!/bin/sh
 # Check what `cargo build --release` built.
 #
-#   scripts/check.sh [exe|lib|sync|all]        default: all
+#   scripts/check.sh [exe|lib|all]        default: all
 #
 # exe:  run mocoal on test/models/Chain.mo.
 # lib:  call libmocoal from the C program interface/test_lib.c.
-# sync: compare interface/ and examples/ with the files of ModelicaComponentAutolayout.jl, where
-#       the interface is kept (MOCOAL_JL names its checkout, default ../ModelicaComponentAutolayout.jl).
-# all:  exe, lib, and sync when that checkout is there.
+# all:  exe and lib.
 #
 # CARGO_TARGET names the directory of the build (default target/release), CC the C compiler
 # (default cc, gcc on Windows).
@@ -15,7 +13,6 @@ set -u
 cd "$(dirname "$0")/.." || exit 1
 what=${1:-all}
 target=${CARGO_TARGET:-target/release}
-julia=${MOCOAL_JL:-../ModelicaComponentAutolayout.jl}
 out=build
 model=test/models/Chain.mo
 mkdir -p "$out"
@@ -49,25 +46,14 @@ check_lib() {
   echo "libmocoal: ok"
 }
 
-check_sync() {
-  [ -d "$julia" ] || { echo "interface: no checkout at $julia"; return 1; }
-  cmp interface/INTERFACE.md "$julia/INTERFACE.md" || return 1
-  cmp interface/test_lib.c "$julia/juliac/test_lib.c" || return 1
-  cmp "$model" "$julia/$model" || return 1
-  diff -r examples "$julia/examples" || return 1
-  echo "interface: the copies are those of $julia"
-}
-
 case $what in
   exe) check_exe ;;
   lib) check_lib ;;
-  sync) check_sync ;;
   all)
     status=0
     check_exe || status=1
     check_lib || status=1
-    if [ -d "$julia" ]; then check_sync || status=1; else echo "interface: not compared, no checkout at $julia"; fi
     exit $status
     ;;
-  *) echo "usage: scripts/check.sh [exe|lib|sync|all]"; exit 2 ;;
+  *) echo "usage: scripts/check.sh [exe|lib|all]"; exit 2 ;;
 esac

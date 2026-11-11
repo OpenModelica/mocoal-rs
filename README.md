@@ -1,6 +1,6 @@
 # mocoal-rs
 
-Gives the components of a Modelica model a `Placement` and its connections a `Line`. For models
+Mocoal (Modelica Component Auto Layout) gives the components of a Modelica model a `Placement` and its connections a `Line`. For models
 written as text, without graphical annotations.
 
 Two forms, one crate:

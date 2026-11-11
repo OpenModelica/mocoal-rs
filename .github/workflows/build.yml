@@ -1,7 +1,7 @@
 # Runs the checks and builds mocoal in two forms: the standalone program and the shared library.
 # Both are tested and uploaded as artifacts. A push or a pull request builds for Linux x86_64; a
 # run by hand (Actions > Build > Run workflow) also builds for macOS (Apple silicon) and Windows
-# x86_64.
+# x86_64. release.yml calls it for all three.
 name: Build
 
 on:
@@ -9,12 +9,20 @@ on:
     branches: [master]
   pull_request:
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      all_platforms:
+        description: Build for macOS and Windows too.
+        type: boolean
+        default: true
 
 permissions:
   contents: read
 
 concurrency:
-  group: build-${{ github.ref }}
+  # The workflow's name is the caller's when release.yml calls this one: a release run does not
+  # cancel the Build run of the same pull request.
+  group: build-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -31,7 +39,7 @@ jobs:
       fail-fast: false
       matrix:
         # Ubuntu 22.04: the binaries need glibc 2.35 or later.
-        include: ${{ fromJSON(github.event_name == 'workflow_dispatch'
+        include: ${{ fromJSON((github.event_name == 'workflow_dispatch' || inputs.all_platforms)
           && '[{"name":"linux-x86_64","os":"ubuntu-22.04"},{"name":"macos-aarch64","os":"macos-15"},{"name":"windows-x86_64","os":"windows-2022"}]'
           || '[{"name":"linux-x86_64","os":"ubuntu-22.04"}]') }}
     defaults:

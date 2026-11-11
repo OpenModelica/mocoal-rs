@@ -1,0 +1,114 @@
+# Publishes a release for a tag vX.Y.Z, where X.Y.Z is the version in Cargo.toml. It attaches
+# - the program and the shared library for Linux x86_64, macOS (Apple silicon) and Windows x86_64,
+#   built and tested by build.yml: 6 archives;
+# - the complete source, mocoal-rs-X.Y.Z-src.tar.gz: the tagged tree, the parser crates of
+#   OpenModelica (scripts/fetch-omc.sh) and the crates.io dependencies (cargo vendor). It builds
+#   without network access, and is tested so before the release;
+# - SHA256SUMS of all of them.
+#
+#   git tag v0.1.0 && git push origin v0.1.0
+#
+# A pull request that changes this file, or a run by hand, is a dry run: everything but the release.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  pull_request:
+    paths: [".github/workflows/release.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Tag and version
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The tag is v and the version in Cargo.toml
+        if: github.ref_type == 'tag'
+        shell: bash
+        run: |
+          version=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -1)
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::tag $GITHUB_REF_NAME, but Cargo.toml has version $version"
+            exit 1
+          fi
+
+  build:
+    needs: check
+    uses: ./.github/workflows/build.yml
+    with:
+      all_platforms: true
+
+  sources:
+    name: Source archive
+    needs: check
+    runs-on: ubuntu-22.04
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Archive
+        run: |
+          version=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -1)
+          name="mocoal-rs-$version"
+          tree="$RUNNER_TEMP/src/$name"
+          mkdir -p "$tree" dist
+          git archive HEAD | tar -x -C "$tree"
+          (cd "$tree" && scripts/fetch-omc.sh)
+          (cd "$tree" && mkdir -p .cargo && cargo vendor --locked vendor > .cargo/config.toml)
+          tar -czf "dist/$name-src.tar.gz" -C "$RUNNER_TEMP/src" "$name"
+          ls -la dist
+
+      - name: The archive builds offline
+        run: |
+          mkdir "$RUNNER_TEMP/try"
+          tar -xzf dist/*-src.tar.gz -C "$RUNNER_TEMP/try"
+          cd "$RUNNER_TEMP"/try/*
+          CARGO_HOME="$RUNNER_TEMP/cargo-home" cargo build --release --offline --locked
+          scripts/check.sh all
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mocoal-src
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: GitHub release
+    needs: [build, sources]
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: mocoal-*
+          path: dist
+          merge-multiple: true
+
+      - name: SHA-256 sums
+        shell: bash
+        run: |
+          cd dist
+          sha256sum -- * > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "$GITHUB_REF_NAME" dist/*
+          --repo "$GITHUB_REPOSITORY"
+          --title "mocoal $GITHUB_REF_NAME"
+          --generate-notes
+          --verify-tag

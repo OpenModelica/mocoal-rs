@@ -203,9 +203,35 @@ Modelica Standard Library 4.1.0, `mocoal -i Modelica`, macOS arm64: 2552 files i
 975 changed, 0 failed; 1182 classes, 8792 components placed, 9622 connections routed. A second
 run changes 0 files.
 
-The workflow [.github/workflows/build.yml](.github/workflows/build.yml) runs the checks, builds both forms and uploads them as artifacts: Linux x86_64 on a push or pull
-request; Linux, macOS arm64 and Windows x86_64 on a run by hand (Actions > Build > Run
-workflow).
+The workflow [.github/workflows/build.yml](.github/workflows/build.yml) runs the checks, builds
+both forms and uploads them as artifacts: Linux x86_64 on a push or pull request; Linux, macOS
+arm64 and Windows x86_64 on a run by hand (Actions > Build > Run workflow) and for a release.
+
+## Release
+
+```bash
+git tag v0.1.0
+```
+
+```bash
+git push origin v0.1.0
+```
+
+The tag is `v` and the version in `Cargo.toml`. The workflow
+[.github/workflows/release.yml](.github/workflows/release.yml) checks that, and makes a GitHub
+release with:
+
+- `mocoal-<platform>` and `libmocoal-<platform>` for Linux x86_64, macOS arm64 and Windows
+  x86_64 (`.tar.gz`, `.zip` on Windows): the program or the library with `README.md` and the
+  licence files, built and tested as by the Build workflow;
+- `mocoal-rs-<version>-src.tar.gz`: the complete source. The tagged tree, the parser crates of
+  OpenModelica and the crates.io dependencies (`cargo vendor`): `cargo build --release --offline`
+  builds it without network access (8 MB). GitHub's own "Source code" archives lack the parser
+  crates;
+- `SHA256SUMS` of all of them.
+
+A pull request that changes `release.yml`, or a run by hand (Actions > Release > Run workflow),
+does all of this but the release.
 
 ## Limitations
 

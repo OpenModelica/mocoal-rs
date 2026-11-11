@@ -14,7 +14,7 @@
 
 use std::cmp::Ordering;
 
-use crate::diagram::{Diagram, Point};
+use crate::layout::diagram::{Diagram, Point};
 use crate::numbers::float_order;
 use crate::options::Options;
 
@@ -160,7 +160,7 @@ pub fn spring_component(d: &mut Diagram, members: &[usize], link_ids: &[usize], 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::diagram::{Link, Node};
+    use crate::layout::diagram::{Link, Node};
 
     #[test]
     fn generator() {

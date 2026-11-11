@@ -14,20 +14,20 @@ use metamodelica::{List, Ref};
 use openmodelica_ast::Absyn;
 use openmodelica_ast::parser::lexer::TokenKind;
 
-use crate::absyn::{
+use crate::layout::diagram::{ACAUSAL, Diagram, Link, Node, Port};
+use crate::layout::placement::place_diagram;
+use crate::options::Options;
+use crate::source::absyn::{
     Transformation, class_annotation_args, comment_args, find_modifier, find_modifier_path, info_position,
     modifier_args, modifier_numbers, path_parts, type_path,
 };
-use crate::diagram::{ACAUSAL, Diagram, Link, Node, Port};
-use crate::lookup::{ClassId, DEFAULT_ICON_SYSTEM, LayoutPlaces, Library, file_path, read_text};
-use crate::options::Options;
-use crate::placement::place_diagram;
-use crate::resolve::{
+use crate::source::lookup::{ClassId, DEFAULT_ICON_SYSTEM, LayoutPlaces, Library, file_path, read_text};
+use crate::source::resolve::{
     ClassKind, MAX_LOOKUP_DEPTH, class_color, direction_code, find_component, icon_places, icon_system,
     is_builtin_path, kind_and_causality, lookup_path, port_info, read_placement, restriction_kind,
     transformation_centre,
 };
-use crate::tokens::Source;
+use crate::source::tokens::Source;
 
 struct Extraction<'a> {
     lib: &'a mut Library,
@@ -603,8 +603,8 @@ pub fn class_selected(name: &str, names: &[String]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lookup::parse_text;
-    use crate::resolve::register_program;
+    use crate::source::lookup::parse_text;
+    use crate::source::resolve::register_program;
 
     const TEXT: &str = "package P
   connector In = input Real;

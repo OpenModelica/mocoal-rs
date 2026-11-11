@@ -15,9 +15,9 @@
 //! Julia; the tables below are read at `direction - 1`.
 //! Mirrors `src/routing.jl` of ModelicaComponentAutolayout.jl.
 
-use crate::diagram::{Diagram, Point, is_horizontal, side_vector};
-use crate::ends::{LinkEnds, link_ends, simple_route, simplify_path};
-use crate::grid::{
+use crate::layout::diagram::{Diagram, Point, is_horizontal, side_vector};
+use crate::layout::ends::{LinkEnds, link_ends, simple_route, simplify_path};
+use crate::layout::grid::{
     Router, build_router, crossed, exit_point, foreign, heap_pop, heap_push, mark_use, net_number, reserve_exits,
 };
 use crate::numbers::sort_perm;
@@ -303,7 +303,7 @@ pub fn route_diagram(d: &mut Diagram, opts: &Options) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::diagram::{Link, Node, Port};
+    use crate::layout::diagram::{Link, Node, Port};
 
     /// A 20x20 `Gain` (input `u` at x = -120, output `y` at x = 110 in the ±100 icon) at (x, y).
     fn gain(name: &str, x: f64, y: f64) -> Node {

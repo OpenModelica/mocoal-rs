@@ -11,9 +11,9 @@
 
 use openmodelica_ast::parser::lexer::TokenKind;
 
-use crate::absyn::format_number;
-use crate::diagram::{Diagram, Link, Node};
-use crate::tokens::{Arg, Edit, Source};
+use crate::layout::diagram::{Diagram, Link, Node};
+use crate::source::absyn::format_number;
+use crate::source::tokens::{Arg, Edit, Source};
 
 pub fn point_text(x: f64, y: f64) -> String {
     format!("{{{},{}}}", format_number(x), format_number(y))

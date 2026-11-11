@@ -18,10 +18,10 @@
 
 use std::cmp::Ordering;
 
-use crate::diagram::{BOTTOM, Diagram, LEFT, Node, RIGHT, is_horizontal};
-use crate::ends::LinkEnds;
+use crate::layout::diagram::{BOTTOM, Diagram, LEFT, Node, RIGHT, is_horizontal};
+use crate::layout::ends::LinkEnds;
+use crate::layout::placement::box_of;
 use crate::numbers::{float_order, sort_perm};
-use crate::placement::box_of;
 
 /// The routing grid: the lines through the link ends and around the nodes, the points that are
 /// blocked, and the nets that use each piece.
@@ -314,8 +314,8 @@ fn search_sorted_last(lines: &[f64], v: f64) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::diagram::{Link, Port};
-    use crate::ends::link_ends;
+    use crate::layout::diagram::{Link, Port};
+    use crate::layout::ends::link_ends;
 
     /// Two 20x20 nodes at (-50, 0) and (0, 0): the output at the right border of the first is
     /// connected to the input at the left border of the second.

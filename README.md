@@ -168,7 +168,16 @@ Rules:
 
 ## Source
 
-23 modules in `src/`, 7900 lines. Names follow the rules of the Rust omc: `snake_case`
+26 files in `src/`, 7800 lines:
+
+| Folder | Modules | Does |
+|---|---|---|
+| `src/` | `api`, `capi`, `cli`, `program`, `options`, `numbers` | the Rust API, the C interface, the program, numbers |
+| `src/source/` | `absyn`, `tokens`, `lookup`, `resolve` | reads the source text, the Absyn tree and the library classes |
+| `src/layout/` | `extract`, `diagram`, `placement`, `layered`, `grid`, `spring`, `ends`, `routing` | builds the diagram, places the components, routes the lines |
+| `src/write/` | `annotate`, `graphics`, `svg` | writes the annotations and the SVG previews |
+
+Names follow the rules of the Rust omc: `snake_case`
 functions, `CamelCase` types, `SCREAMING_SNAKE_CASE` constants, rustfmt with `max_width = 120`,
 errors as `Result`. `src/numbers.rs` has `sind`, `cosd` and the printing of numbers, so that
 the output is the same to the last digit on every platform.

@@ -21,8 +21,8 @@ use metamodelica::Ref;
 use openmodelica_ast::Absyn;
 use openmodelica_ast::parser;
 
-use crate::absyn::{class_annotation_args, find_modifier, modifier_args, modifier_exp};
-use crate::tokens::Source;
+use crate::source::absyn::{class_annotation_args, find_modifier, modifier_args, modifier_exp};
+use crate::source::tokens::Source;
 
 /// A class of the library: an index into [`Library::classes`].
 pub type ClassId = usize;

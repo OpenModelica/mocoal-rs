@@ -10,8 +10,8 @@
 
 use std::collections::HashMap;
 
-use crate::absyn::{Transformation, rotate_point};
-use crate::tokens::Segment;
+use crate::source::absyn::{Transformation, rotate_point};
+use crate::source::tokens::Segment;
 
 pub type Point = (f64, f64);
 

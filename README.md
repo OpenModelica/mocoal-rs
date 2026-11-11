@@ -3,18 +3,47 @@
 Gives the components of a Modelica model a `Placement` and its connections a `Line`. For models
 written as text, without graphical annotations.
 
-The Rust implementation of
-[ModelicaComponentAutolayout.jl](https://github.com/JKRT/ModelicaComponentAutolayout.jl): the
-same command line, the same C interface, the same output. Two forms, one crate:
+Two forms, one crate:
 
 - the standalone program `mocoal`,
 - the shared library `libmocoal` (C interface, for tools such as OMEdit).
 
-The README of ModelicaComponentAutolayout.jl describes the options, the rules of the layout and
-the limitations. This file has what differs.
+The source is parsed with OpenModelica's Rust parser. Only annotations are changed: comments,
+formatting and everything else in the file stay as they are.
 
-[examples/](examples/README.md): a model written as text (Drive), and six examples of the Modelica
-Standard Library, before and after, in OMEdit.
+## Example
+
+```modelica
+model Chain
+  Gain a(k = 2);
+  Gain b;
+  Gain c "the last one";
+equation
+  a.u = time;
+  connect(a.y, b.u);
+  connect(b.y, c.u);
+end Chain;
+```
+
+`mocoal Chain.mo` prints:
+
+```modelica
+model Chain
+  Gain a(k = 2) annotation(Placement(transformation(origin={-50,0}, extent={{-10,-10},{10,10}})));
+  Gain b annotation(Placement(transformation(origin={0,0}, extent={{-10,-10},{10,10}})));
+  Gain c "the last one" annotation(Placement(transformation(origin={50,0}, extent={{-10,-10},{10,10}})));
+equation
+  a.u = time;
+  connect(a.y, b.u) annotation(Line(points={{-39,0},{-12,0}}));
+  connect(b.y, c.u) annotation(Line(points={{11,0},{38,0}}));
+end Chain;
+```
+
+The lines start and end at the connectors of `Gain` (its `u` at x = -120, its `y` at x = 110 in
+the icon). The whole file is in [test/models/Chain.mo](test/models/Chain.mo).
+
+More in [examples/](examples/README.md): a model written as text (Drive), and six examples of the
+Modelica Standard Library, before and after, in OMEdit.
 
 ## Build
 
@@ -31,26 +60,43 @@ cargo build --release
 `target/release/mocoal` and `target/release/libmocoal.{so,dylib}` (`mocoal.dll` on Windows).
 macOS arm64: `mocoal` 1.6 MB, `libmocoal.dylib` 1.5 MB, no other files needed at run time.
 
-## Parser
+## Command line
 
-The source is parsed with OpenModelica's own Rust parser, the crate `openmodelica_ast`
-(`OMCompiler/Compiler/OpenModelica.rs` in
-[OpenModelica](https://github.com/OpenModelica/OpenModelica)). It gives the `Absyn` tree of omc.
-The crate is linked statically: no OpenModelica installation is needed to build or run.
+```
+usage: mocoal [options] file.mo|directory ...
 
-`scripts/fetch-omc.sh` copies 5 crates (`openmodelica_ast`, `openmodelica_error`,
-`openmodelica_wasi`, `metamodelica`, `metamodelica_derive`) and 6 builtin `.mo` files into
-`omc/` (1.5 MB), at the commit in [omc/COMMIT](omc/COMMIT). They are not in this repository.
-`OPENMODELICA_SRC=<checkout> scripts/fetch-omc.sh` takes them from a local checkout, else they
-come from GitHub (38 s). A new parser: change `omc/COMMIT`, fetch, build, run the checks.
+Give the components of Modelica models a placement and the connections a line.
+One file without -o, -i or -n: the result is printed.
 
-## Interface
+  -o, --output FILE      write the result to FILE (one input file)
+  -i, --in-place         change the input files
+  -n, --dry-run          report only, write nothing
+  -c, --class NAME       lay out only this class or package (may be repeated)
+  -k, --keep             keep existing placements and lines, add what is missing
+      --layout NAME      layered (default), spring, grid
+      --route NAME       orthogonal (default), straight, bezier, none
+      --direction NAME   right (default), down
+      --spacing DX[,DY]  space between components (30,20)
+      --scale S          factor on the component size (1)
+      --no-rotate        do not turn two-pin components
+      --graphics NAME    shapes of the Diagram layer: move (default), keep, drop
+  -L, --library DIR      a directory with libraries (may be repeated)
+      --svg DIR          write an SVG preview of every diagram into DIR
+  -q, --quiet            no report
+  -h, --help             this text
+      --version          the version
+```
 
-[interface/INTERFACE.md](interface/INTERFACE.md) is the specification of the library and
-[interface/test_lib.c](interface/test_lib.c) the C program that tests it. Both are copies: the
-files are kept in ModelicaComponentAutolayout.jl (`INTERFACE.md`, `juliac/test_lib.c`). A change
-of the interface goes into both repositories; `scripts/check.sh sync` fails when a copy differs.
-It also compares `examples/`, which both repositories have.
+A directory is searched for `.mo` files. The report goes to standard error. Exit status: 0, 1 (a
+file failed), 2 (command line).
+
+An existing layout is replaced. `--keep` leaves existing placements and lines and adds the
+missing ones.
+
+Classes used by a model are looked up in the file, in its package directory, in the `-L`
+directories, in `OPENMODELICALIBRARY` and `MODELICAPATH`, and in `~/.openmodelica/libraries`.
+
+## Shared library
 
 ```c
 char *mocoal_layout(const char *text, const char *file_name, const char *options);
@@ -59,17 +105,73 @@ const char *mocoal_version(void);
 void mocoal_free(char *text);
 ```
 
+- `mocoal_layout` returns the new source, or `NULL` when there is no layout. `file_name` may be
+  `NULL` or empty. `options` is a command line as for `mocoal` (`"--route straight --keep"`),
+  `NULL` or empty for the defaults; a word may be in double quotes (`-L "/my libs"`). Release the
+  result with `mocoal_free`.
+- `mocoal_message` gives the error after a `NULL`, and the warnings (one per line) after a layout.
+  The text belongs to the library.
+- Call the functions from one thread at a time.
+
+[interface/INTERFACE.md](interface/INTERFACE.md) is the specification: what a caller may rely on,
+the options, the class lookup, and what an implementation of the library has to do.
+[interface/test_lib.c](interface/test_lib.c) is a C program that tests it.
+
 The library also exports 3 symbols of the parser crates (`omrs_add_runtime_error`,
 `omrs_add_runtime_error_pos`, `omrs_runtime_abort`). They are not part of the interface.
 
+## Parser
+
+The crate `openmodelica_ast` (`OMCompiler/Compiler/OpenModelica.rs` in
+[OpenModelica](https://github.com/OpenModelica/OpenModelica)) gives the `Absyn` tree of omc. It is
+linked statically: no OpenModelica installation is needed to build or run.
+
+`scripts/fetch-omc.sh` copies 5 crates (`openmodelica_ast`, `openmodelica_error`,
+`openmodelica_wasi`, `metamodelica`, `metamodelica_derive`) and 6 builtin `.mo` files into
+`omc/` (1.5 MB), at the commit in [omc/COMMIT](omc/COMMIT). They are not in this repository.
+`OPENMODELICA_SRC=<checkout> scripts/fetch-omc.sh` takes them from a local checkout, else they
+come from GitHub (38 s). A new parser: change `omc/COMMIT`, fetch, build, run the checks.
+
+## How it works
+
+1. Parse the file (`openmodelica_ast`), and tokenize it for the positions of the edits.
+2. Per model, block or class: collect the components that have an icon (connectors, and
+   components of classes with connectors) and the `connect` equations. Ports get their place and
+   colour from the connector's `Placement` and icon in the component's class, base classes
+   included.
+3. Place the components: layered (signal flow from left to right; inputs left, outputs right),
+   spring or grid. Unconnected components go into a grid.
+4. Route the connections: orthogonal lines around the components, straight lines, or Bezier.
+5. Write `Placement` and `Line` into the annotations. The diagram's `extent` is written only
+   when the content does not fit.
+
+Rules:
+
+- A connector of the class itself is placed in the diagram and keeps its place in the icon: the
+  old `transformation` becomes the `iconTransformation`. Without a place it gets one on the
+  icon's border (inputs left, outputs right).
+- Components whose connectors are all acausal (two-pin electrical, mechanical and thermal parts)
+  are turned by 0, 90, 180 or 270 degrees so that their connectors face their neighbours: the
+  layout runs, the parts are turned, the layout runs again (up to 3 times). `--no-rotate` leaves
+  them unturned.
+- The shapes of the Diagram layer (`Diagram(graphics={...})`) belong to the old layout:
+  a rectangle that held components becomes the frame of those components, a text inside it or up
+  to 25 above it moves with the frame, a small rectangle or ellipse (a junction marker) and a
+  rectangle that holds nothing are dropped, other shapes move with the nearest component. A
+  frame that would cover another component is dropped with its texts. `--graphics keep` leaves
+  the shapes, `--graphics drop` removes them.
+- A class with only placed connectors and no connections (an interface) is left as it is.
+- A component inherited from a base class sits where the base class has it. When the base class
+  is laid out in the same run, that is its new place.
+- A file that is not UTF-8 is refused.
+- A second run on the result changes nothing.
+
 ## Source
 
-One module per file of the Julia package (`src/extract.rs` mirrors `src/extract.jl`), 7900
-lines. Names follow the rules of the Rust omc: `snake_case` functions, `CamelCase` types,
-`SCREAMING_SNAKE_CASE` constants, rustfmt with `max_width = 120`, errors as `Result`.
-
-`src/numbers.rs` has `sind`, `cosd` and the printing of numbers as Julia does them: the output
-has to be the same to the last digit.
+23 modules in `src/`, 7900 lines. Names follow the rules of the Rust omc: `snake_case`
+functions, `CamelCase` types, `SCREAMING_SNAKE_CASE` constants, rustfmt with `max_width = 120`,
+errors as `Result`. `src/numbers.rs` has `sind`, `cosd` and the printing of numbers, so that
+the output is the same to the last digit on every platform.
 
 ## Checks
 
@@ -90,42 +192,34 @@ cargo clippy -p mocoal --all-targets --no-deps -- -D warnings
 ```
 
 55 tests. `check.sh [exe|lib|sync|all]` runs the program on
-[test/models/Chain.mo](test/models/Chain.mo), compiles and runs `interface/test_lib.c` against
-the library, and compares the copies in `interface/` with a checkout of
-ModelicaComponentAutolayout.jl (`MOCOAL_JL`, default `../ModelicaComponentAutolayout.jl`).
-`cargo fmt` and `cargo clippy` need `-p mocoal` (and clippy `--no-deps`): without it they work on
-the fetched crates too.
+[test/models/Chain.mo](test/models/Chain.mo) and compiles and runs `interface/test_lib.c`
+against the library. `interface/` and `examples/` are copies of a reference checkout;
+`check.sh sync` fails when they differ (`MOCOAL_JL` names the checkout). `cargo fmt` and
+`cargo clippy` need `-p mocoal` (and clippy `--no-deps`): without it they work on the fetched
+crates too.
 
 `scripts/compare.sh MOCOAL_A MOCOAL_B LIBRARY_DIR WORK_DIR [options]` lays out a copy of a
 library with two programs and compares the files, the SVG previews and the reports.
+
+Modelica Standard Library 4.1.0, `mocoal -i Modelica`, macOS arm64: 2552 files in 1.1 to 1.5 s,
+975 changed, 0 failed; 1182 classes, 8792 components placed, 9622 connections routed. A second
+run changes 0 files.
 
 The workflow [.github/workflows/build.yml](.github/workflows/build.yml) runs the checks (without
 `sync`), builds both forms and uploads them as artifacts: Linux x86_64 on a push or pull
 request; Linux, macOS arm64 and Windows x86_64 on a run by hand (Actions > Build > Run
 workflow).
 
-## Compared with the Julia program
+## Limitations
 
-`mocoal` 0.1.0 of both, macOS arm64, `-i --svg`, compared with `scripts/compare.sh`. Files,
-SVG previews and reports are the same, byte for byte:
-
-| Library | Files | Changed | SVG | Option sets |
-|---|---|---|---|---|
-| Modelica 4.1.0 | 2552 | 975 | 1182 | 8 |
-| Buildings 13.0.0 | 5621 | 2622 | 2639 | 1 |
-| Modelica 3.2.3 | 212 | 137 | 1014 | 1 |
-| SystemDynamics 2.1.2 | 1 | 1 | 69 | 1 |
-
-`mocoal -n Modelica` (4.1.0): 1.4 s for both. Size: 1.6 MB against 43 MB (the Julia program
-with its runtime).
-
-Two differences:
-
-- The text of a parse error is the parser's. `model A Real x end A;` gives
-  `a.mo:1:16: No viable alternative near token: end` here, and
-  `Expected ';' after the element but found 'end A'` at the same position in Julia.
-- A file that is not UTF-8 is refused (`FILE: not UTF-8`; `the text is not UTF-8` in the
-  library). The Julia program passes the bytes on.
+- Components are not flipped, and only acausal parts are turned. A replaced `Placement` loses
+  its rotation and flip; the size of an existing extent is kept. Circuits with many parallel
+  branches (ladders) come out worse than hand-made layouts: there are no junction points.
+- Modifiers and redeclarations are not applied in the class lookup.
+- Connections to inherited components do not influence the placement.
+- With `--keep`, existing lines are not obstacles for the new ones.
+- `replaceable ... constrainedby ... annotation(...)`: the `Placement` goes into the annotation
+  of the constraining clause.
 
 ## Licence
 

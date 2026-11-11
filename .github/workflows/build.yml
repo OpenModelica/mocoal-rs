@@ -1,7 +1,7 @@
 # Runs the checks and builds mocoal in two forms: the standalone program and the shared library.
 # Both are tested and uploaded as artifacts. A push or a pull request builds for Linux x86_64; a
 # run by hand (Actions > Build > Run workflow) also builds for macOS (Apple silicon) and Windows
-# x86_64. release.yml calls it for all three.
+# x86_64. release.yml calls it for all three, with the commit to release.
 name: Build
 
 on:
@@ -15,6 +15,10 @@ on:
         description: Build for macOS and Windows too.
         type: boolean
         default: true
+      ref:
+        description: The commit to build (empty for the one of the event).
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -47,6 +51,8 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
 
       - name: Install Rust
         id: rust

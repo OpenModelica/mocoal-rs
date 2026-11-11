@@ -1,48 +1,95 @@
-# Publishes a release for a tag vX.Y.Z, where X.Y.Z is the version in Cargo.toml. It attaches
+# Publishes a release of mocoal. Only by hand: Actions > Release > Run workflow; a pushed tag does
+# not start it. Inputs:
+# - commit: the commit to release, on master. Empty: the head of master.
+# - publish: make the tag and the release. Off (the default): a dry run, everything but those two.
+# The version X.Y.Z comes from Cargo.toml of that commit; the job makes the tag vX.Y.Z on it, and
+# refuses a version whose tag exists. The release has
 # - the program and the shared library for Linux x86_64, macOS (Apple silicon) and Windows x86_64,
 #   built and tested by build.yml: 6 archives;
-# - the complete source, mocoal-rs-X.Y.Z-src.tar.gz: the tagged tree, the parser crates of
+# - the complete source, mocoal-rs-X.Y.Z-src.tar.gz: the tree of the commit, the parser crates of
 #   OpenModelica (scripts/fetch-omc.sh) and the crates.io dependencies (cargo vendor). It builds
 #   without network access, and is tested so before the release;
 # - SHA256SUMS of all of them.
 #
-#   git tag v0.1.0 && git push origin v0.1.0
-#
-# A pull request that changes this file, or a run by hand, is a dry run: everything but the release.
+# A pull request that changes this file is a dry run of the pull request.
 name: Release
 
 on:
-  push:
-    tags: ["v*"]
   pull_request:
     paths: [".github/workflows/release.yml"]
   workflow_dispatch:
+    inputs:
+      commit:
+        description: Commit on master to release (empty for the head of master)
+        type: string
+        default: ""
+      publish:
+        description: Make the tag and the release (off for a dry run)
+        type: boolean
+        default: false
+
+# One release run at a time.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
 
 jobs:
   check:
-    name: Tag and version
+    name: Commit, version and tag
     runs-on: ubuntu-22.04
+    outputs:
+      sha: ${{ steps.check.outputs.sha }}
+      version: ${{ steps.check.outputs.version }}
+      tag: ${{ steps.check.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: The tag is v and the version in Cargo.toml
-        if: github.ref_type == 'tag'
+      - name: Commit, version and tag
+        id: check
         shell: bash
+        env:
+          COMMIT: ${{ inputs.commit }}
+          PUBLISH: ${{ inputs.publish }}
         run: |
-          version=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -1)
-          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
-            echo "::error::tag $GITHUB_REF_NAME, but Cargo.toml has version $version"
-            exit 1
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            sha=$(git rev-parse HEAD)
+          else
+            if ! sha=$(git rev-parse --verify --quiet "${COMMIT:-origin/master}^{commit}"); then
+              echo "::error::no such commit: $COMMIT"
+              exit 1
+            fi
+            if ! git merge-base --is-ancestor "$sha" origin/master; then
+              echo "::error::$sha is not on master"
+              exit 1
+            fi
           fi
+          version=$(git show "$sha:Cargo.toml" | sed -n 's/^version = "\(.*\)"$/\1/p' | head -1)
+          tag="v$version"
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" > /dev/null; then
+            if [ "$PUBLISH" = true ]; then
+              echo "::error::the tag $tag exists: change the version in Cargo.toml"
+              exit 1
+            fi
+            echo "::warning::the tag $tag exists"
+          fi
+          echo "commit $sha, version $version, tag $tag, publish ${PUBLISH:-false}"
+          {
+            echo "sha=$sha"
+            echo "version=$version"
+            echo "tag=$tag"
+          } >> "$GITHUB_OUTPUT"
 
   build:
     needs: check
     uses: ./.github/workflows/build.yml
     with:
       all_platforms: true
+      ref: ${{ needs.check.outputs.sha }}
 
   sources:
     name: Source archive
@@ -53,11 +100,14 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.check.outputs.sha }}
 
       - name: Archive
+        env:
+          VERSION: ${{ needs.check.outputs.version }}
         run: |
-          version=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -1)
-          name="mocoal-rs-$version"
+          name="mocoal-rs-$VERSION"
           tree="$RUNNER_TEMP/src/$name"
           mkdir -p "$tree" dist
           git archive HEAD | tar -x -C "$tree"
@@ -83,8 +133,8 @@ jobs:
 
   release:
     name: GitHub release
-    needs: [build, sources]
-    if: github.ref_type == 'tag'
+    needs: [check, build, sources]
+    if: github.event_name == 'workflow_dispatch' && inputs.publish
     runs-on: ubuntu-22.04
     permissions:
       contents: write
@@ -102,13 +152,16 @@ jobs:
           sha256sum -- * > SHA256SUMS
           cat SHA256SUMS
 
-      - name: Release
+      # Makes the tag on the commit, then the release.
+      - name: Tag and release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          SHA: ${{ needs.check.outputs.sha }}
+          TAG: ${{ needs.check.outputs.tag }}
         run: >-
-          gh release create "$GITHUB_REF_NAME" dist/*
+          gh release create "$TAG" dist/*
           --repo "$GITHUB_REPOSITORY"
-          --title "mocoal $GITHUB_REF_NAME"
+          --target "$SHA"
+          --title "mocoal $TAG"
           --generate-notes
-          --verify-tag

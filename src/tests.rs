@@ -17,7 +17,8 @@
 //!
 //! Each case also checks the laid-out diagram of every class: no two components overlap, every
 //! line starts and ends at its ports, orthogonal lines are axis-aligned and pass through no
-//! component, and a second layout of the result changes nothing.
+//! component, and a second layout of the result changes nothing. With `keep`, every `Placement`
+//! of the input is in the result as it was.
 
 use std::path::PathBuf;
 
@@ -99,6 +100,19 @@ const CASES: &[Case] = &[
         expected: "Features-keep.mo",
         set: |o| o.keep = true,
     },
+    Case {
+        model: "Tickets.mo",
+        expected: "Tickets.mo",
+        set: defaults,
+    },
+    Case {
+        model: "Tickets.mo",
+        expected: "Tickets-keep-partial.mo",
+        set: |o| {
+            o.keep = true;
+            o.classes = vec!["Tickets.Partial".to_owned()];
+        },
+    },
 ];
 
 /// Components that keep a place given elsewhere, so the class does not place them: (class, how many).
@@ -147,6 +161,13 @@ fn layouts() {
         });
         if let Err(e) = checks {
             failed.push(format!("{}: {e}", case.expected));
+        }
+        if opts.keep
+            && let Some(line) = source
+                .lines()
+                .find(|l| l.contains("Placement(") && !result.text.contains(l))
+        {
+            failed.push(format!("{}: --keep changes `{}`", case.expected, line.trim()));
         }
         let (again, _) = layout(case, &result.text, &opts);
         if again.changed {

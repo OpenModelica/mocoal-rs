@@ -2,6 +2,10 @@
 # Lay out a copy of a library with two mocoal programs and compare the files and the reports.
 # usage: scripts/compare.sh MOCOAL_A MOCOAL_B LIBRARY_DIR WORK_DIR [mocoal options]
 set -u
+if [ $# -lt 4 ]; then
+  echo "usage: scripts/compare.sh MOCOAL_A MOCOAL_B LIBRARY_DIR WORK_DIR [mocoal options]"
+  exit 2
+fi
 a=$1; b=$2; lib=$3; work=$4; shift 4
 # The programs run in the work directory: make their paths absolute.
 case $a in /*) ;; */*) a=$PWD/$a ;; esac

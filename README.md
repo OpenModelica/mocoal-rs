@@ -294,4 +294,4 @@ to crates.io (`publish = false`).
 
 ## Licence
 
-AGPL v3 or OSMC-PL 1.8, according to the recipient's choice. See [LICENSE.md](LICENSE.md).
+OSMC-PL 1.8 or AGPL v3, according to the recipient's choice. See [LICENSE.md](LICENSE.md).

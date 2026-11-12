@@ -14,6 +14,7 @@ pub mod api;
 pub mod capi;
 pub mod options;
 pub mod program;
+pub mod stack;
 
 mod cli;
 mod layout;

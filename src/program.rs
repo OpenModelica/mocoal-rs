@@ -9,10 +9,10 @@
 //! that is wrong.
 //! Mirrors `src/main.jl` of ModelicaComponentAutolayout.jl.
 
-use std::io::Write;
+use std::io::{Read, Write};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
-use crate::api::{VERSION, layout_file_in, write_text};
+use crate::api::{VERSION, layout_file_in, layout_string_in, write_text};
 use crate::cli::{CommandLine, USAGE_TEXT, modelica_files, parse_arguments, svg_file_name};
 use crate::source::lookup::{Library, file_path, is_dir, is_file, join_path};
 
@@ -24,9 +24,21 @@ fn say(s: &str) {
 /// was.
 type Pending = Vec<(String, String)>;
 
-/// Lay out one file as the command line asks: (done, changed).
-fn run_file(cl: &CommandLine, lib: &mut Library, file: &str, several: bool, pending: &mut Pending) -> (bool, bool) {
-    let res = match catch_unwind(AssertUnwindSafe(|| layout_file_in(file, &cl.opts, lib))) {
+/// Lay out one file as the command line asks: (done, changed). `text` is the text of `file` when
+/// it is not read from the file (`--stdin`).
+fn run_file(
+    cl: &CommandLine,
+    lib: &mut Library,
+    file: &str,
+    text: Option<&str>,
+    several: bool,
+    pending: &mut Pending,
+) -> (bool, bool) {
+    let lay = |lib: &mut Library| match text {
+        Some(text) => layout_string_in(text, file, &cl.opts, lib),
+        None => layout_file_in(file, &cl.opts, lib),
+    };
+    let res = match catch_unwind(AssertUnwindSafe(|| lay(lib))) {
         Ok(Ok(res)) => res,
         Ok(Err(msg)) => {
             say(&format!("mocoal: {msg}"));
@@ -104,6 +116,9 @@ pub fn run(args: &[String]) -> u8 {
         println!("mocoal {VERSION}");
         return 0;
     }
+    if !cl.stdin.is_empty() {
+        return run_stdin(&cl);
+    }
     if cl.inputs.is_empty() {
         eprint!("{USAGE_TEXT}");
         return 2;
@@ -141,7 +156,7 @@ pub fn run(args: &[String]) -> u8 {
     let mut changed = 0;
     let mut pending = Pending::new();
     for file in &files {
-        let (ok, ch) = run_file(&cl, &mut lib, file, several, &mut pending);
+        let (ok, ch) = run_file(&cl, &mut lib, file, None, several, &mut pending);
         failed += usize::from(!ok);
         changed += usize::from(ch);
     }
@@ -157,4 +172,28 @@ pub fn run(args: &[String]) -> u8 {
         say(&format!("{} files, {changed} {word}, {failed} failed", files.len()));
     }
     u8::from(failed > 0)
+}
+
+/// `--stdin FILE`: lay out the text on the standard input as the text of `FILE`.
+fn run_stdin(cl: &CommandLine) -> u8 {
+    if !cl.inputs.is_empty() || cl.in_place {
+        say("mocoal: --stdin takes no input files and no -i");
+        return 2;
+    }
+    if !cl.svg_dir.is_empty() && std::fs::create_dir_all(&cl.svg_dir).is_err() {
+        say(&format!("mocoal: cannot create {}", cl.svg_dir));
+        return 2;
+    }
+    let mut bytes = Vec::new();
+    if std::io::stdin().read_to_end(&mut bytes).is_err() {
+        say("mocoal: cannot read the standard input");
+        return 2;
+    }
+    let Ok(text) = String::from_utf8(bytes) else {
+        say(&format!("mocoal: {}: not UTF-8", cl.stdin));
+        return 1;
+    };
+    let mut lib = Library::new(&cl.opts.libraries);
+    let (ok, _) = run_file(cl, &mut lib, &cl.stdin, Some(&text), false, &mut Pending::new());
+    u8::from(!ok)
 }

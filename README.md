@@ -259,14 +259,14 @@ arm64 and Windows x86_64 on a run by hand (Actions > Build > Run workflow) and f
 
 ## Release
 
-Only by hand: Actions > Release > Run workflow
-([.github/workflows/release.yml](.github/workflows/release.yml)), with
+By hand on GitHub: Releases > Draft a new release.
 
-- `commit`: the commit to release, on master. Empty: the head of master.
-- `publish`: make the tag and the release. Off (the default): a dry run, everything but those two.
+1. Choose a tag: type the new tag `v<version>`, `<version>` as in `Cargo.toml` of the commit.
+2. Target: the commit, from a branch or Recent commits. It must be on master.
+3. Publish release. "Generate release notes" fills in the pull requests.
 
-The version comes from `Cargo.toml` of that commit. The workflow builds and tests that commit,
-makes the tag `v<version>` on it and a GitHub release with:
+Publishing makes the tag and starts [.github/workflows/release.yml](.github/workflows/release.yml).
+It checks the commit and the tag, builds and tests that commit, and attaches to the release:
 
 - `mocoal-<platform>` and `libmocoal-<platform>` for Linux x86_64, macOS arm64 and Windows
   x86_64 (`.tar.gz`, `.zip` on Windows): the program or the library with `README.md` and the
@@ -277,9 +277,12 @@ makes the tag `v<version>` on it and a GitHub release with:
   crates;
 - `SHA256SUMS` of all of them.
 
-A version whose tag exists is refused: change the version in `Cargo.toml` first. A pushed tag
-starts no release. A pull request that changes `release.yml` is a dry run. Nothing is published
-to crates.io (`publish = false`).
+The archives come when the workflow is done. When a step fails (a tag that is not
+`v<version>`, a commit not on master, a failed build), the release becomes a draft again and the
+tag stays: delete both, fix, and release again. A dry run builds everything and attaches nothing:
+Actions > Release > Run workflow (`commit`: empty for the head of master), or a pull request that
+changes `release.yml`. A pushed tag starts no release. Nothing is published to crates.io
+(`publish = false`).
 
 ## Limitations
 

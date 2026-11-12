@@ -89,6 +89,8 @@ One file without -o, -i or -n: the result is printed.
   -o, --output FILE      write the result to FILE (one input file)
       --stdin FILE       read the text of FILE from the standard input (FILE need not
                          exist; its place finds the libraries next to it)
+      --stack MB         stack of the layout in MB (256); a level of nesting in the
+                         model takes about 3 KB
   -i, --in-place         change the input files
   -n, --dry-run          report only, write nothing
   -c, --class NAME       lay out only this class or package (may be repeated)

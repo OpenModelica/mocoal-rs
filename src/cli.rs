@@ -12,6 +12,7 @@ use crate::api::layout_string;
 use crate::numbers::parse_float;
 use crate::options::Options;
 use crate::source::lookup::{is_dir, is_file, join_path};
+use crate::stack::{MAX_STACK_MB, STACK_MB, on_large_stack};
 
 pub const USAGE_TEXT: &str = "usage: mocoal [options] file.mo|directory ...
        mocoal [options] --stdin file.mo
@@ -22,6 +23,8 @@ One file without -o, -i or -n: the result is printed.
   -o, --output FILE      write the result to FILE (one input file)
       --stdin FILE       read the text of FILE from the standard input (FILE need not
                          exist; its place finds the libraries next to it)
+      --stack MB         stack of the layout in MB (256); a level of nesting in the
+                         model takes about 3 KB
   -i, --in-place         change the input files
   -n, --dry-run          report only, write nothing
   -c, --class NAME       lay out only this class or package (may be repeated)
@@ -41,19 +44,39 @@ One file without -o, -i or -n: the result is printed.
 ";
 
 /// A parsed command line.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct CommandLine {
     pub opts: Options,
     pub inputs: Vec<String>,
     pub output: String,
     /// With `--stdin`: the name of the file whose text is read from the standard input.
     pub stdin: String,
+    /// The stack of the layout thread in MB.
+    pub stack_mb: usize,
     pub in_place: bool,
     pub dry_run: bool,
     pub quiet: bool,
     pub svg_dir: String,
     pub help: bool,
     pub version: bool,
+}
+
+impl Default for CommandLine {
+    fn default() -> Self {
+        Self {
+            opts: Options::default(),
+            inputs: Vec::new(),
+            output: String::new(),
+            stdin: String::new(),
+            stack_mb: STACK_MB,
+            in_place: false,
+            dry_run: false,
+            quiet: false,
+            svg_dir: String::new(),
+            help: false,
+            version: false,
+        }
+    }
 }
 
 impl CommandLine {
@@ -63,6 +86,13 @@ impl CommandLine {
         match name {
             "-o" | "--output" => self.output = value.to_owned(),
             "--stdin" => self.stdin = value.to_owned(),
+            "--stack" => {
+                self.stack_mb = value
+                    .parse()
+                    .ok()
+                    .filter(|mb| (1..=MAX_STACK_MB).contains(mb))
+                    .ok_or_else(|| format!("--stack: expected MB from 1 to {MAX_STACK_MB}: {value}"))?
+            }
             "-c" | "--class" => o.classes.push(value.to_owned()),
             "-L" | "--library" => o.libraries.push(value.to_owned()),
             "--layout" => o.layout = value.to_owned(),
@@ -111,6 +141,7 @@ fn takes_value(name: &str) -> bool {
         name,
         "-o" | "--output"
             | "--stdin"
+            | "--stack"
             | "-c"
             | "--class"
             | "-L"
@@ -214,7 +245,9 @@ pub fn layout_text(text: &str, file_name: &str, options: &str) -> Result<(String
     {
         return Err(format!("only layout options are allowed here: {options}"));
     }
-    let res = layout_string(text, file_name, &cl.opts)?;
+    // Deep nesting in a model needs more stack than the caller's thread may have.
+    let res = on_large_stack(cl.stack_mb, || layout_string(text, file_name, &cl.opts))
+        .unwrap_or_else(|_| Err("internal error, no layout".to_owned()))?;
     Ok((res.text, res.warnings.join("\n")))
 }
 
@@ -276,6 +309,15 @@ mod tests {
             "/a b/M.mo"
         );
         assert!(layout_text("model M end M;", "M.mo", "--stdin M.mo").is_err());
+        assert_eq!(parse_arguments(&[]).unwrap().stack_mb, 256);
+        assert_eq!(parse_arguments(&words("--stack=1024")).unwrap().stack_mb, 1024);
+        for bad in ["0", "x", "65537"] {
+            assert_eq!(
+                parse_arguments(&words(&format!("--stack {bad}"))).unwrap_err(),
+                format!("--stack: expected MB from 1 to 65536: {bad}")
+            );
+        }
+        assert!(layout_text("model M end M;", "M.mo", "--stack 512").is_ok());
         assert_eq!(
             parse_arguments(&words("--scale")).unwrap_err(),
             "--scale: a value is missing"

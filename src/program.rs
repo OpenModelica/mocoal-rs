@@ -15,6 +15,7 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 use crate::api::{VERSION, layout_file_in, layout_string_in, write_text};
 use crate::cli::{CommandLine, USAGE_TEXT, modelica_files, parse_arguments, svg_file_name};
 use crate::source::lookup::{Library, file_path, is_dir, is_file, join_path};
+use crate::stack::on_large_stack;
 
 fn say(s: &str) {
     eprintln!("{s}");
@@ -116,8 +117,17 @@ pub fn run(args: &[String]) -> u8 {
         println!("mocoal {VERSION}");
         return 0;
     }
+    // Deep nesting in a model needs more stack than the main thread has.
+    on_large_stack(cl.stack_mb, || run_command(&cl)).unwrap_or_else(|_| {
+        say("mocoal: internal error");
+        1
+    })
+}
+
+/// The files or the standard input of the command line `cl`.
+fn run_command(cl: &CommandLine) -> u8 {
     if !cl.stdin.is_empty() {
-        return run_stdin(&cl);
+        return run_stdin(cl);
     }
     if cl.inputs.is_empty() {
         eprint!("{USAGE_TEXT}");
@@ -156,7 +166,7 @@ pub fn run(args: &[String]) -> u8 {
     let mut changed = 0;
     let mut pending = Pending::new();
     for file in &files {
-        let (ok, ch) = run_file(&cl, &mut lib, file, None, several, &mut pending);
+        let (ok, ch) = run_file(cl, &mut lib, file, None, several, &mut pending);
         failed += usize::from(!ok);
         changed += usize::from(ch);
     }

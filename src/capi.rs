@@ -8,10 +8,10 @@
 //! Mirrors `juliac/libmocoal.jl` of ModelicaComponentAutolayout.jl.
 
 use std::ffi::{CStr, CString, c_char};
+use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::Mutex;
 
 use crate::cli::layout_text;
-use crate::stack::on_large_stack;
 
 /// The message of the last `mocoal_layout`.
 static MESSAGE: Mutex<Option<CString>> = Mutex::new(None);
@@ -66,8 +66,9 @@ pub unsafe extern "C" fn mocoal_layout(
     let args = unsafe { (c_text(text), c_text(file_name), c_text(options)) };
     let result = match args {
         (Ok(text), Ok(file_name), Ok(options)) => {
-            // No panic may cross the interface; deep nesting needs more stack than the caller's thread may have.
-            on_large_stack(|| layout(text, file_name, options)).unwrap_or_else(|_| Err(INTERNAL_ERROR.to_owned()))
+            // No panic may cross the interface. `layout_text` lays out on a large stack.
+            catch_unwind(AssertUnwindSafe(|| layout(text, file_name, options)))
+                .unwrap_or_else(|_| Err(INTERNAL_ERROR.to_owned()))
         }
         (Err(e), _, _) | (_, Err(e), _) | (_, _, Err(e)) => Err(e),
     };

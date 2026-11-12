@@ -58,9 +58,8 @@ speed sensor's feedback below. In OMEdit 1.27.1:
 
 ![Drive in OMEdit after mocoal](examples/omedit/Drive-layout.png)
 
-Both pass OMEdit's check (Chain 6 equations, Drive 32). More in [examples/](examples/README.md):
-Drive before and after, and six examples of the Modelica Standard Library, before and after, in
-OMEdit.
+More in [examples/](examples/README.md): Drive before and after, and six examples of the
+Modelica Standard Library, before and after, in OMEdit.
 
 ## Build
 

@@ -46,7 +46,7 @@ for people. Its wording is not part of the interface: a caller tests the result 
 
 ### mocoal_version
 
-The version of the implementation (`"0.1.0"`). The text belongs to the library and is valid as
+The version of the implementation (`"0.1.1"`). The text belongs to the library and is valid as
 long as the library is loaded. It is not the version of the interface (see
 [Open points](#open-points)).
 
@@ -94,6 +94,7 @@ Releases a result of `mocoal_layout`. `NULL` is allowed.
 | `--no-rotate` | | off | Do not turn components whose connectors are all acausal. |
 | `--graphics NAME` | `move`, `keep`, `drop` | `move` | What happens to the shapes of the Diagram layer. |
 | `-L`, `--library DIR` | a directory | none | A directory with libraries, for the class lookup. May be repeated; searched in the order given. |
+| `--stack MB` | an integer from 1 to 65536 | `256` | The stack of the layout in MB. A level of nesting in the model takes about 3 KB. |
 
 What the options do is described in [README.md](README.md).
 
@@ -101,7 +102,7 @@ Rules:
 
 - Any other word gives `NULL` and a message: an unknown option, a missing value, an unknown
   value, a file name, and the options of the program `mocoal` that are not layout options
-  (`-o`, `-i`, `-n`, `-q`, `--svg`, `-h`, `--version`).
+  (`-o`, `--stdin`, `-i`, `-n`, `-q`, `--svg`, `-h`, `--version`).
 - No layout is made with a part of the options. An implementation that does not have an option
   or a value returns `NULL`; it does not ignore the word.
 - A text without classes comes back as it is. So `mocoal_layout("", NULL, "--graphics move")`

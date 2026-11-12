@@ -4,13 +4,13 @@ mocoal-rs
 
 Copyright (c) 2026 Open Source Modelica Consortium (OSMC)
 
-It is provided under the terms of the GNU Affero General Public License version 3 (AGPL v3) or
-the OSMC Public License (OSMC-PL) version 1.8, according to the recipient's choice:
+It is provided under the terms of the OSMC Public License (OSMC-PL) version 1.8 or the GNU Affero
+General Public License version 3 (AGPL v3), according to the recipient's choice:
 
-- **AGPL v3:** the full text is in [COPYING](COPYING), and at
-  https://www.gnu.org/licenses/agpl-3.0.html.
 - **OSMC-PL 1.8:** the full text is in [OSMC-License.txt](OSMC-License.txt), as distributed with
   OpenModelica (https://github.com/OpenModelica/OpenModelica).
+- **AGPL v3:** the full text is in [COPYING](COPYING), and at
+  https://www.gnu.org/licenses/agpl-3.0.html.
 
 This program is distributed WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE, EXCEPT AS EXPRESSLY SET FORTH IN THE BY
@@ -92,7 +92,7 @@ Not in this repository; the build fetches them.
 
 - The parser of OpenModelica: the crates `openmodelica_ast`, `openmodelica_error`,
   `openmodelica_wasi`, `metamodelica` and `metamodelica_derive`
-  (https://github.com/OpenModelica/OpenModelica, `OMCompiler/Compiler/OpenModelica.rs`), AGPL v3
-  or OSMC-PL 1.8. `scripts/fetch-omc.sh` fetches them at the commit in `omc/COMMIT`.
+  (https://github.com/OpenModelica/OpenModelica, `OMCompiler/Compiler/OpenModelica.rs`), OSMC-PL
+  1.8 or AGPL v3. `scripts/fetch-omc.sh` fetches them at the commit in `omc/COMMIT`.
 - Crates from crates.io, at the versions in `Cargo.lock`, each under MIT, Apache-2.0 or a licence
   as permissive: `cargo metadata --format-version 1` lists the licence of each.

@@ -1,8 +1,8 @@
 // This file is part of mocoal-rs.
 // Copyright (c) 2026 Open Source Modelica Consortium (OSMC)
 //
-// This program is provided under the terms of the GNU AGPL version 3 license or the OSMC Public
-// License (OSMC-PL) version 1.8, according to the recipient's choice. See LICENSE.md.
+// This program is provided under the terms of the OSMC Public License (OSMC-PL) version 1.8 or
+// the GNU AGPL version 3 license, according to the recipient's choice. See LICENSE.md.
 
 //! A thread with a large stack for the layout. The parser descends recursively: each level of
 //! nesting in a model (parentheses, packages) takes about 3 KB of stack in a release build, so an
@@ -15,12 +15,15 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::Mutex;
 use std::thread;
 
-/// 256 MB: about 80000 levels. Only the part that is used takes memory.
-pub const STACK_SIZE: usize = 256 << 20;
+/// 256 MB: about 80000 levels. Only the part that is used takes memory. `--stack MB` sets another.
+pub const STACK_MB: usize = 256;
 
-/// `f()` on a thread with a stack of `STACK_SIZE`. `Err` when `f` panics. Without such a thread
+/// The largest `--stack`: 64 GB.
+pub const MAX_STACK_MB: usize = 64 << 10;
+
+/// `f()` on a thread with a stack of `mb` MB. `Err` when `f` panics. Without such a thread
 /// (a limit on memory), `f()` runs on the current thread.
-pub fn on_large_stack<T: Send>(f: impl FnOnce() -> T + Send) -> Result<T, Box<dyn Any + Send>> {
+pub fn on_large_stack<T: Send>(mb: usize, f: impl FnOnce() -> T + Send) -> Result<T, Box<dyn Any + Send>> {
     // The thread takes `f` from here; when there is no thread, `f` is still here.
     let slot = Mutex::new(Some(f));
     let take = || slot.lock().unwrap_or_else(|e| e.into_inner()).take();
@@ -29,7 +32,7 @@ pub fn on_large_stack<T: Send>(f: impl FnOnce() -> T + Send) -> Result<T, Box<dy
             return Err(io::Error::other("no thread (test)"));
         }
         thread::Builder::new()
-            .stack_size(STACK_SIZE)
+            .stack_size(mb << 20)
             .spawn_scoped(s, || take().map(|f| f()))
             .map(|handle| handle.join())
     });
@@ -80,15 +83,15 @@ mod tests {
     fn deep_nesting_on_the_large_stack() {
         // 4000 levels overflow the 8 MB main thread of a release build and the 2 MB test thread.
         let text = deep(4000);
-        let result = on_large_stack(|| layout_string(&text, "Deep.mo", &Options::default()));
+        let result = on_large_stack(STACK_MB, || layout_string(&text, "Deep.mo", &Options::default()));
         assert!(matches!(result, Ok(Ok(_))));
     }
 
     #[test]
     fn without_the_thread_on_the_current_one() {
         NO_THREAD.set(true);
-        let value = on_large_stack(|| 7).ok();
-        let panic = on_large_stack(|| -> u8 { panic!("test") }).is_err();
+        let value = on_large_stack(STACK_MB, || 7).ok();
+        let panic = on_large_stack(STACK_MB, || -> u8 { panic!("test") }).is_err();
         NO_THREAD.set(false);
         assert_eq!(value, Some(7));
         assert!(panic);
@@ -96,7 +99,7 @@ mod tests {
 
     #[test]
     fn a_panic_is_an_error() {
-        assert!(on_large_stack(|| -> u8 { panic!("test") }).is_err());
-        assert_eq!(on_large_stack(|| 7).ok(), Some(7));
+        assert!(on_large_stack(STACK_MB, || -> u8 { panic!("test") }).is_err());
+        assert_eq!(on_large_stack(STACK_MB, || 7).ok(), Some(7));
     }
 }

@@ -160,7 +160,7 @@ Not part of the interface; what a caller of this implementation (Rust) has to kn
   `internal error, no layout`.
 - Time: Modelica Standard Library 4.1.0, 2552 files, 1.1 to 1.5 s for all of them with the
   program `mocoal`.
-- Licence: AGPL v3 or OSMC-PL 1.8, according to the recipient's choice.
+- Licence: OSMC-PL 1.8 or AGPL v3, according to the recipient's choice.
 
 ## Test
 

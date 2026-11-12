@@ -3,7 +3,7 @@ name = "mocoal"
 version = "0.1.0"
 edition = "2024"
 authors = ["John Tinnerholm <jtinnerholm@gmail.com>"]
-license = "AGPL-3.0-only OR LicenseRef-OSMC-PL-1.8"
+license = "LicenseRef-OSMC-PL-1.8 OR AGPL-3.0-only"
 description = "Gives the components of a Modelica model a Placement and its connections a Line"
 publish = false
 

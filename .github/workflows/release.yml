@@ -1,33 +1,32 @@
-# Builds the archives of a release of mocoal and attaches them to it. A release is made by hand on
-# GitHub: Releases > Draft a new release, a new tag vX.Y.Z (X.Y.Z: the version in Cargo.toml of the
-# commit), Target: the commit (a branch or Recent commits), Publish release. Publishing makes the
-# tag and starts this workflow, which
-# - checks that the commit is on master and that the tag is v + the version in Cargo.toml;
-# - builds and tests the program and the shared library for Linux x86_64, macOS (Apple silicon) and
-#   Windows x86_64 with build.yml: 6 archives;
-# - makes the complete source, mocoal-rs-X.Y.Z-src.tar.gz: the tree of the commit, the parser crates
-#   of OpenModelica (scripts/fetch-omc.sh) and the crates.io dependencies (cargo vendor). It builds
-#   without network access, and is tested so;
-# - attaches the archives and SHA256SUMS of them to the release.
-# When a step fails, the release becomes a draft again (the tag stays): fix, delete the draft and
-# the tag, and release again.
+# Publishes a release of mocoal. Only by hand: Actions > Release > Run workflow; a pushed tag does
+# not start it. Inputs:
+# - commit: the commit to release, on master. Empty: the head of master.
+# - publish: make the tag and the release. Off (the default): a dry run, everything but those two.
+# The version X.Y.Z comes from Cargo.toml of that commit; the job makes the tag vX.Y.Z on it, and
+# refuses a version whose tag exists. The release has
+# - the program and the shared library for Linux x86_64, macOS (Apple silicon) and Windows x86_64,
+#   built and tested by build.yml: 6 archives;
+# - the complete source, mocoal-rs-X.Y.Z-src.tar.gz: the tree of the commit, the parser crates of
+#   OpenModelica (scripts/fetch-omc.sh) and the crates.io dependencies (cargo vendor). It builds
+#   without network access, and is tested so before the release;
+# - SHA256SUMS of all of them.
 #
-# A dry run builds everything and attaches nothing: Actions > Release > Run workflow (input: the
-# commit, empty for the head of master), or a pull request that changes this file. A pushed tag
-# starts nothing.
+# A pull request that changes this file is a dry run of the pull request.
 name: Release
 
 on:
   pull_request:
     paths: [".github/workflows/release.yml"]
-  release:
-    types: [published]
   workflow_dispatch:
     inputs:
       commit:
-        description: Commit on master for a dry run (empty for the head of master)
+        description: Commit on master to release (empty for the head of master)
         type: string
         default: ""
+      publish:
+        description: Make the tag and the release (off for a dry run)
+        type: boolean
+        default: false
 
 # One release run at a time.
 concurrency:
@@ -55,33 +54,30 @@ jobs:
         shell: bash
         env:
           COMMIT: ${{ inputs.commit }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          PUBLISH: ${{ inputs.publish }}
         run: |
-          case "$GITHUB_EVENT_NAME" in
-            pull_request) sha=$(git rev-parse HEAD) ;;
-            release) sha=$(git rev-parse --verify "refs/tags/$RELEASE_TAG^{commit}") ;;
-            *)
-              if ! sha=$(git rev-parse --verify --quiet "${COMMIT:-origin/master}^{commit}"); then
-                echo "::error::no such commit: $COMMIT"
-                exit 1
-              fi
-              ;;
-          esac
-          if [ "$GITHUB_EVENT_NAME" != pull_request ] && ! git merge-base --is-ancestor "$sha" origin/master; then
-            echo "::error::$sha is not on master"
-            exit 1
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            sha=$(git rev-parse HEAD)
+          else
+            if ! sha=$(git rev-parse --verify --quiet "${COMMIT:-origin/master}^{commit}"); then
+              echo "::error::no such commit: $COMMIT"
+              exit 1
+            fi
+            if ! git merge-base --is-ancestor "$sha" origin/master; then
+              echo "::error::$sha is not on master"
+              exit 1
+            fi
           fi
           version=$(git show "$sha:Cargo.toml" | sed -n 's/^version = "\(.*\)"$/\1/p' | head -1)
           tag="v$version"
-          if [ "$GITHUB_EVENT_NAME" = release ]; then
-            if [ "$RELEASE_TAG" != "$tag" ]; then
-              echo "::error::the tag $RELEASE_TAG is not v + the version in Cargo.toml of $sha ($version)"
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" > /dev/null; then
+            if [ "$PUBLISH" = true ]; then
+              echo "::error::the tag $tag exists: change the version in Cargo.toml"
               exit 1
             fi
-          elif git ls-remote --exit-code --tags origin "refs/tags/$tag" > /dev/null; then
-            echo "::warning::the tag $tag exists: change the version in Cargo.toml before a release"
+            echo "::warning::the tag $tag exists"
           fi
-          echo "event $GITHUB_EVENT_NAME, commit $sha, version $version, tag $tag"
+          echo "commit $sha, version $version, tag $tag, publish ${PUBLISH:-false}"
           {
             echo "sha=$sha"
             echo "version=$version"
@@ -135,10 +131,10 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  attach:
-    name: Attach to the release
+  release:
+    name: GitHub release
     needs: [check, build, sources]
-    if: github.event_name == 'release'
+    if: github.event_name == 'workflow_dispatch' && inputs.publish
     runs-on: ubuntu-22.04
     permissions:
       contents: write
@@ -156,27 +152,16 @@ jobs:
           sha256sum -- * > SHA256SUMS
           cat SHA256SUMS
 
-      - name: Attach
+      # Makes the tag on the commit, then the release.
+      - name: Tag and release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.event.release.tag_name }}
-        run: gh release upload "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --clobber
-
-  # No published release without its archives.
-  unpublish:
-    name: Back to a draft
-    needs: [check, build, sources, attach]
-    if: failure() && github.event_name == 'release'
-    runs-on: ubuntu-22.04
-    permissions:
-      contents: write
-    steps:
-      - name: Draft
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.event.release.tag_name }}
-        run: |
-          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=true
-          echo "::error::the release $TAG is a draft again; the tag $TAG stays"
+          SHA: ${{ needs.check.outputs.sha }}
+          TAG: ${{ needs.check.outputs.tag }}
+        run: >-
+          gh release create "$TAG" dist/*
+          --repo "$GITHUB_REPOSITORY"
+          --target "$SHA"
+          --title "mocoal $TAG"
+          --generate-notes

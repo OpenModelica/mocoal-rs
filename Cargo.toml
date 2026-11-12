@@ -1,6 +1,6 @@
 [package]
 name = "mocoal"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 authors = ["John Tinnerholm <jtinnerholm@gmail.com>"]
 license = "LicenseRef-OSMC-PL-1.8 OR AGPL-3.0-only"

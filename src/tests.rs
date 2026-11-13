@@ -102,6 +102,15 @@ const CASES: &[Case] = &[
         set: |o| o.keep = true,
     },
     Case {
+        model: "Inheritance.mo",
+        expected: "Inheritance.mo",
+        set: |o| {
+            o.classes = ["Extended", "Separate", "Deeper", "Circuit"]
+                .map(|c| format!("Inheritance.{c}"))
+                .to_vec();
+        },
+    },
+    Case {
         model: "Tickets.mo",
         expected: "Tickets.mo",
         set: defaults,
@@ -115,9 +124,6 @@ const CASES: &[Case] = &[
         },
     },
 ];
-
-/// Components that keep a place given elsewhere, so the class does not place them: (class, how many).
-const NOT_PLACED: &[(&str, usize)] = &[("Features.Derived", 1)];
 
 /// The text of a file with LF line endings.
 fn read_lf(path: &Path) -> Option<String> {
@@ -197,8 +203,7 @@ fn check_report(result: &LayoutResult, opts: &Options) -> Result<(), String> {
         return Err(format!("warnings: {:?}", result.warnings));
     }
     for c in &result.classes {
-        let given = NOT_PLACED.iter().find(|(n, _)| *n == c.name).map_or(0, |(_, k)| *k);
-        if (!opts.keep && c.placed + given != c.components) || c.routed != c.connections {
+        if (!opts.keep && c.placed != c.components) || c.routed != c.connections {
             return Err(format!(
                 "{}: {} of {} placed, {} of {} routed",
                 c.name, c.placed, c.components, c.routed, c.connections

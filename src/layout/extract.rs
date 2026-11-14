@@ -23,7 +23,7 @@ use crate::source::absyn::{
 };
 use crate::source::lookup::{ClassId, DEFAULT_ICON_SYSTEM, LayoutPlaces, Library, file_path, read_text};
 use crate::source::resolve::{
-    ClassKind, MAX_LOOKUP_DEPTH, class_color, direction_code, find_component, icon_places, icon_system,
+    ClassKind, MAX_LOOKUP_DEPTH, base_classes, class_color, direction_code, find_component, icon_places, icon_system,
     is_builtin_path, kind_and_causality, lookup_path, port_info, read_placement, restriction_kind,
     transformation_centre,
 };
@@ -238,9 +238,22 @@ impl Extraction<'_> {
         }
     }
 
+    /// Every component inherited from a base class that has a place, as a fixed node: the parts of
+    /// the class are placed clear of them and the lines routed around them.
+    fn inherited_obstacles(&mut self) {
+        let mut names = Vec::new();
+        inherited_names(self.lib, self.class, 0, &mut names);
+        for name in names {
+            if !self.d.index.contains_key(&name) {
+                self.inherited_node(&name, true);
+            }
+        }
+    }
+
     /// The node of a component inherited from a base class. It is where the base class has it: at
-    /// the place this run gives it there, or else at its placement.
-    fn inherited_node(&mut self, name: &str) -> Option<usize> {
+    /// the place this run gives it there, or else at its placement. With `drawn`, none for a
+    /// component whose class has no diagram box (a type, a function, a package).
+    fn inherited_node(&mut self, name: &str, drawn: bool) -> Option<usize> {
         let d = find_component(self.lib, self.class, name, 0)?;
         if d.owner == self.class {
             return None;
@@ -267,6 +280,9 @@ impl Extraction<'_> {
         let tref = lookup_path(self.lib, d.owner, tp, false, 0);
         let direction = d.attributes().map_or(ACAUSAL, direction_code);
         let (kind, direction) = kind_and_causality(self.lib, tref, direction);
+        if drawn && kind.is_some_and(ClassKind::is_not_drawn) {
+            return None;
+        }
         let mut n = self.make_node(name, &path_parts(tp).join("."), tref, kind, direction, &t);
         n.set_transformation(&t);
         n.fixed = true;
@@ -285,7 +301,7 @@ impl Extraction<'_> {
         }
         let ni = match self.d.index.get(&first) {
             Some(i) => *i,
-            None => self.inherited_node(&first)?,
+            None => self.inherited_node(&first, false)?,
         };
         let n = &self.d.nodes[ni];
         if n.is_connector || second.is_empty() {
@@ -504,7 +520,42 @@ pub fn is_interface(d: &Diagram) -> bool {
     d.links.is_empty()
         && d.nodes
             .iter()
-            .all(|n| n.is_connector && n.has_transformation && !n.inherited)
+            .filter(|n| !n.inherited)
+            .all(|n| n.is_connector && n.has_transformation)
+}
+
+/// The names of the components that class `c` inherits, from its base classes and theirs, in
+/// order and without repeats; components of a built-in type are left out.
+fn inherited_names(lib: &mut Library, c: ClassId, depth: usize, out: &mut Vec<String>) {
+    if depth > MAX_LOOKUP_DEPTH {
+        return;
+    }
+    for b in base_classes(lib, c, depth) {
+        let elements = lib.elements_of(b);
+        for e in elements.iter() {
+            let Absyn::ELEMENT { specification, .. } = &**e else {
+                continue;
+            };
+            let Absyn::COMPONENTS {
+                typeSpec: type_spec,
+                components,
+                ..
+            } = &**specification
+            else {
+                continue;
+            };
+            if is_builtin_path(&path_parts(type_path(type_spec))) {
+                continue;
+            }
+            for item in components {
+                let name = item.component.name.as_str();
+                if !out.iter().any(|o| o == name) {
+                    out.push(name.to_owned());
+                }
+            }
+        }
+        inherited_names(lib, b, depth + 1, out);
+    }
 }
 
 /// The diagram of class `c`, or none when it has nothing to lay out: no components, or only
@@ -546,8 +597,9 @@ pub fn extract_diagram(
         }
     }
     x.drop_tentative();
+    x.inherited_obstacles();
     let mut d = x.d;
-    if d.nodes.is_empty() || is_interface(&d) {
+    if (d.nodes.iter().all(|n| n.inherited) && d.links.is_empty()) || is_interface(&d) {
         return None;
     }
     d.end_tok = class_end_token(src, &class);

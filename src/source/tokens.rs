@@ -234,10 +234,10 @@ impl Source {
     /// The token that closes the bracket opened by token `i`.
     pub fn match_close(&self, i: usize) -> Option<usize> {
         let mut depth: i32 = 0;
-        for j in i..self.kinds.len() {
-            if is_open(&self.kinds[j]) {
+        for (j, k) in self.kinds.iter().enumerate().skip(i) {
+            if is_open(k) {
                 depth += 1;
-            } else if is_close(&self.kinds[j]) {
+            } else if is_close(k) {
                 depth -= 1;
                 if depth == 0 {
                     return Some(j);
@@ -252,8 +252,7 @@ impl Source {
         let mut segs: Vec<Segment> = Vec::new();
         let mut depth: i32 = 0;
         let mut seg = Segment::ending_at(s);
-        for j in s..self.kinds.len() {
-            let k = &self.kinds[j];
+        for (j, k) in self.kinds.iter().enumerate().skip(s) {
             if is_open(k) {
                 depth += 1;
             } else if is_close(k) {
@@ -282,8 +281,7 @@ impl Source {
     pub fn equation_end(&self, s: usize) -> (Option<usize>, Option<usize>) {
         let mut depth: i32 = 0;
         let mut ann: Option<usize> = None;
-        for j in s..self.kinds.len() {
-            let k = &self.kinds[j];
+        for (j, k) in self.kinds.iter().enumerate().skip(s) {
             if is_open(k) {
                 depth += 1;
             } else if is_close(k) {

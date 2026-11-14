@@ -31,11 +31,12 @@ package Features "The rules of the layout: own connectors, inheritance, unconnec
 
   model Derived "The inherited components sit where Base has them"
     extends Base;
-    Parts.Integrator integrator annotation(Placement(transformation(origin={-30,0}, extent={{-10,-10},{10,10}})));
-    Parts.Gain amplifier annotation(Placement(transformation(origin={-10,30}, extent={{-10,-10},{10,10}})));
+    Parts.Integrator integrator annotation(Placement(transformation(origin={70,0}, extent={{-10,-10},{10,10}})));
+    Parts.Gain amplifier annotation(Placement(transformation(origin={120,0}, extent={{-10,-10},{10,10}})));
   equation
-    connect(gain.y, integrator.u) annotation(Line(points={{31,0},{40,0},{40,-15},{-50,-15},{-50,0},{-42,0}}, color={0,0,127}));
-    connect(integrator.y, amplifier.u) annotation(Line(points={{-19,0},{-10,0},{-10,15},{-30,15},{-30,30},{-22,30}}, color={0,0,127}));
+    connect(gain.y, integrator.u) annotation(Line(points={{31,0},{58,0}}, color={0,0,127}));
+    connect(integrator.y, amplifier.u) annotation(Line(points={{81,0},{108,0}}, color={0,0,127}));
+    annotation(Diagram(coordinateSystem(extent={{-100,-100},{160,100}})));
   end Derived;
 
   model Unconnected "Connected parts in a row, unconnected ones in a grid"

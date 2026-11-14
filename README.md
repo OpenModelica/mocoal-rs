@@ -185,7 +185,9 @@ Rules:
   the shapes, `--graphics drop` removes them.
 - A class with only placed connectors and no connections (an interface) is left as it is.
 - A component inherited from a base class sits where the base class has it. When the base class
-  is laid out in the same run, that is its new place.
+  is laid out in the same run, that is its new place. The new components go beside the inherited
+  ones (not beside inherited connectors), on the side where the lines to them are shortest; no
+  component or line is placed on an inherited component.
 - A file that is not UTF-8 is refused.
 - A second run on the result changes nothing.
 
@@ -286,7 +288,7 @@ to crates.io (`publish = false`).
   its rotation and flip; the size of an existing extent is kept. Circuits with many parallel
   branches (ladders) come out worse than hand-made layouts: there are no junction points.
 - Modifiers and redeclarations are not applied in the class lookup.
-- Connections to inherited components do not influence the placement.
+- Connections to inherited components only choose the side the new components go to.
 - With `--keep`, existing lines are not obstacles for the new ones.
 - `replaceable ... constrainedby ... annotation(...)`: the `Placement` goes into the annotation
   of the constraining clause.

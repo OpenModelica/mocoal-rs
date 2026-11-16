@@ -187,6 +187,74 @@ fn layout_free(d: &mut Diagram, opts: &Options) {
     }
 }
 
+/// Move the free nodes as one block beside the inherited components (not the connectors): right
+/// of, below, left of or above them, on the side where the lines between the two are shortest
+/// (right when there are none). The components of the base class keep their places and the new
+/// ones their layout; inherited connectors on the border keep the block between them.
+fn beside_inherited(d: &mut Diagram, opts: &Options) {
+    let parts: Vec<usize> = (0..d.nodes.len())
+        .filter(|&i| d.nodes[i].inherited && !d.nodes[i].is_connector)
+        .collect();
+    let free: Vec<usize> = (0..d.nodes.len()).filter(|&i| !d.nodes[i].fixed).collect();
+    if parts.is_empty() || free.is_empty() {
+        return;
+    }
+    let f = box_of(d, &parts);
+    let b = box_of(d, &free);
+    // The ends of the lines between a free node and a fixed one: (free, fixed).
+    let pairs: Vec<(Point, Point)> = d
+        .links
+        .iter()
+        .filter_map(|l| {
+            let (a, b) = (d.nodes[l.a].port_position(l.pa), d.nodes[l.b].port_position(l.pb));
+            match (d.nodes[l.a].fixed, d.nodes[l.b].fixed) {
+                (false, true) => Some((a, b)),
+                (true, false) => Some((b, a)),
+                _ => None,
+            }
+        })
+        .collect();
+    // The shift along a side that lines the block up with the fixed nodes it connects to; without
+    // lines, the tops (right and left) or the left edges (below and above) line up.
+    let along = |vertical: bool| -> f64 {
+        if pairs.is_empty() {
+            return if vertical { f.3 - b.3 } else { f.0 - b.0 };
+        }
+        let sum: f64 = pairs
+            .iter()
+            .map(|&(p, q)| if vertical { q.1 - p.1 } else { q.0 - p.0 })
+            .sum();
+        sum / pairs.len() as f64
+    };
+    let sides = [
+        (f.2 + opts.dx - b.0, along(true)),
+        (along(false), f.1 - opts.dy - b.3),
+        (f.0 - opts.dx - b.2, along(true)),
+        (along(false), f.3 + opts.dy - b.1),
+    ];
+    let length = |s: (f64, f64)| -> f64 {
+        pairs
+            .iter()
+            .map(|&(p, q)| (p.0 + s.0 - q.0).abs() + (p.1 + s.1 - q.1).abs())
+            .sum()
+    };
+    let mut best = sides[0];
+    for &s in &sides[1..] {
+        if length(s) < length(best) - 1.0e-9 {
+            best = s;
+        }
+    }
+    shift_nodes(
+        d,
+        &free,
+        (best.0 / 10.0).round_ties_even() * 10.0,
+        (best.1 / 10.0).round_ties_even() * 10.0,
+    );
+    for &i in &free {
+        d.nodes[i].set_free();
+    }
+}
+
 /// Move the free nodes that overlap a fixed node to the nearest free position.
 fn clear_fixed(d: &mut Diagram, opts: &Options) {
     let gap = opts.dx.min(opts.dy) / 2.0;
@@ -402,6 +470,7 @@ pub fn place_diagram(d: &mut Diagram, opts: &Options) {
             }
         }
         if fixed > 0 {
+            beside_inherited(d, opts);
             clear_fixed(d, opts);
         }
     }

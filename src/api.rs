@@ -117,7 +117,7 @@ pub(crate) fn layout_diagrams(
             }
             res.classes.push(ClassReport {
                 name: name.clone(),
-                components: d.nodes.len(),
+                components: d.nodes.iter().filter(|n| !n.inherited).count(),
                 connections: d.links.len(),
                 placed,
                 routed,
